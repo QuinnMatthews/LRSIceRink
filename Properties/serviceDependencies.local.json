@@ -10,6 +10,10 @@
       "type": "mssql.azure",
       "connectionId": "ConnectionStrings:azProd",
       "dynamicId": null
+    },
+    "secrets1": {
+      "type": "secrets.user",
+      "dynamicId": null
     }
   }
 }

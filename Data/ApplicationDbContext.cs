@@ -6,5 +6,6 @@ namespace LRSIceRink.Data {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) {
         }
+        public DbSet<Skate> Skates { get; set; }
     }
 }

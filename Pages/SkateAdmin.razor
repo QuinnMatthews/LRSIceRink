@@ -1,0 +1,95 @@
+﻿@page "/skateAdmin"
+@using LRSIceRink.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Immutable
+@using System.Globalization
+@inject ApplicationDbContext Context
+@inject IMessageService MessageService
+
+<PageTitle>Skate Administration</PageTitle>
+
+<h1>Skate Administration</h1>
+<p>Here you can manually modify any of the skate properties</p>
+<LoadingIndicator @bind-Visible="@_busy">
+    @if(_hasLoaded) {
+        <Field>
+            <TextEdit Placeholder="Search for skate..." @bind-Text="_search" />
+        </Field>
+
+        @if(_skates is not null) {
+            <Table Striped>
+                <TableBody>
+                    @foreach(var skate in _skates.Where(s => (string.IsNullOrEmpty(_search) || s.Name.Contains(_search)))) {
+                        <TableRow>
+                            <TableRowHeader>@skate.Name</TableRowHeader>
+                            <TableRowCell>@skate.Status.ToString()</TableRowCell>
+                            <TableRowCell>
+                                <NumericEdit TValue="double" Value="skate.MinutesUsed" Min="0" ValueChanged="min => UpdateSkateMinutes(skate, min)"/>
+                                <p>minutes</p>
+                            </TableRowCell>
+                            <TableRowCell>
+                                <Buttons>
+                                    @if (skate.Status != SkateStatus.Available) {
+                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)"> Available</Button>
+                                    } else {
+                                        <Button Color="Color.Secondary" Disabled> Available</Button>
+                                    }
+                                    @if(skate.Status != SkateStatus.InUse) {
+                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)"> In Use</Button>
+                                    } else {
+                                        <Button Color="Color.Secondary" Disabled> In Use</Button>
+                                    }
+                                    @if(skate.Status != SkateStatus.BeingSharpened) {
+                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.BeingSharpened)"> Being Sharpened</Button>
+                                    } else {
+                                        <Button Color="Color.Secondary" Disabled> Being Sharpened</Button>
+                                    }
+                                </Buttons>
+                            </TableRowCell>
+                        </TableRow>
+                    }
+                </TableBody>
+            </Table>
+        } else //_skates is null
+        {
+            <p>Uh oh! Either something went wrong or there are no skates to display!</p>
+        }
+    }
+</LoadingIndicator>
+@code {
+    private bool _busy, _hasLoaded;
+    private List<Skate>? _skates;
+    private string? _search;
+    private List<Property>? _properties;
+
+    protected override async Task OnInitializedAsync() {
+        _busy = true;
+        _hasLoaded = false;
+
+        if(Context is not null) {
+            //Get all skates
+            _skates = await Context.Skates.OrderBy(s => s.Name).ToListAsync();
+            //Get global properties
+            _properties = await Context.Properties.ToListAsync();
+        }
+
+        await base.OnInitializedAsync();
+        _busy = false;
+        _hasLoaded = true;
+    }
+
+    protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus) {
+        _busy = true;
+        skate.Status = newStatus;
+        await Context.SaveChangesAsync();
+        _busy = false;
+    }
+
+    protected async Task UpdateSkateMinutes(Skate skate, double minutes)
+    {
+        _busy = true;
+        skate.MinutesUsed = minutes;
+        await Context.SaveChangesAsync();
+        _busy = false;
+    }
+}

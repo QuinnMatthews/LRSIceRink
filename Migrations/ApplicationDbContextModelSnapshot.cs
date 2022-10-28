@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace LRSIceRink.Data.Migrations
+namespace LRSIceRink.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -21,6 +21,39 @@ namespace LRSIceRink.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
+
+            modelBuilder.Entity("LRSIceRink.Data.Property", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Properties");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("262571a0-539e-4fd0-a794-4cf32e71836a"),
+                            Name = "WarnSkateUsageMinutes",
+                            Value = "180"
+                        },
+                        new
+                        {
+                            Id = new Guid("603505cf-f399-4e17-84c0-b966da1af987"),
+                            Name = "MaxSkateUsageMinutes",
+                            Value = "240"
+                        });
+                });
 
             modelBuilder.Entity("LRSIceRink.Data.Skate", b =>
                 {

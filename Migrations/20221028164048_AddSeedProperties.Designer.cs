@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace LRSIceRink.Data.Migrations
+namespace LRSIceRink.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20221027204913_AddSkateStatus")]
-    partial class AddSkateStatus
+    [Migration("20221028164048_AddSeedProperties")]
+    partial class AddSeedProperties
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -24,11 +24,47 @@ namespace LRSIceRink.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
+            modelBuilder.Entity("LRSIceRink.Data.Property", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Properties");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("262571a0-539e-4fd0-a794-4cf32e71836a"),
+                            Name = "WarnSkateUsageMinutes",
+                            Value = "180"
+                        },
+                        new
+                        {
+                            Id = new Guid("603505cf-f399-4e17-84c0-b966da1af987"),
+                            Name = "MaxSkateUsageMinutes",
+                            Value = "240"
+                        });
+                });
+
             modelBuilder.Entity("LRSIceRink.Data.Skate", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("MinutesUsed")
+                        .HasColumnType("float");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -40,6 +76,28 @@ namespace LRSIceRink.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Skates");
+                });
+
+            modelBuilder.Entity("LRSIceRink.Data.SkateUsage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SkateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("TimeIn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("TimeOut")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SkateId");
+
+                    b.ToTable("SkatesUsage");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -244,6 +302,15 @@ namespace LRSIceRink.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("LRSIceRink.Data.SkateUsage", b =>
+                {
+                    b.HasOne("LRSIceRink.Data.Skate", "Skate")
+                        .WithMany("SkateUsages")
+                        .HasForeignKey("SkateId");
+
+                    b.Navigation("Skate");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -293,6 +360,11 @@ namespace LRSIceRink.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("LRSIceRink.Data.Skate", b =>
+                {
+                    b.Navigation("SkateUsages");
                 });
 #pragma warning restore 612, 618
         }

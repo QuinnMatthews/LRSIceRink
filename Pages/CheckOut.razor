@@ -75,7 +75,6 @@
             if (Context is not null)
             {
                 _skates = await Context.Skates.OrderBy(s=>s.Name).ToListAsync();
-                                
             }
         }
         finally

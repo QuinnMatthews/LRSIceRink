@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace LRSIceRink.Data.Migrations
+namespace LRSIceRink.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20221028024010_AddSkateUsage")]
-    partial class AddSkateUsage
+    [Migration("20221028163523_InitialMigration")]
+    partial class InitialMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -24,11 +24,33 @@ namespace LRSIceRink.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
+            modelBuilder.Entity("LRSIceRink.Data.Property", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Properties");
+                });
+
             modelBuilder.Entity("LRSIceRink.Data.Skate", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("MinutesUsed")
+                        .HasColumnType("float");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -48,10 +70,10 @@ namespace LRSIceRink.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SkateId")
+                    b.Property<Guid?>("SkateId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("TimeIn")
+                    b.Property<DateTime?>("TimeIn")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("TimeOut")
@@ -270,9 +292,7 @@ namespace LRSIceRink.Data.Migrations
                 {
                     b.HasOne("LRSIceRink.Data.Skate", "Skate")
                         .WithMany("SkateUsages")
-                        .HasForeignKey("SkateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SkateId");
 
                     b.Navigation("Skate");
                 });

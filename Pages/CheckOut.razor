@@ -3,10 +3,11 @@
 @using Microsoft.EntityFrameworkCore
 @using System.Collections.Immutable
 @inject ApplicationDbContext Context   
+@inject IMessageService MessageService
 
 <PageTitle>Skate Check Out</PageTitle>
 
-<h1>Counter</h1>
+<h1>Rental Check Out/Check In</h1>
 <LoadingIndicator @bind-Visible="@_busy">
 @if (_hasLoaded)
 {
@@ -65,6 +66,7 @@
     private bool _busy;
     private bool _hasLoaded;
     private string? _search;
+    private List<Property>? _properties;
     protected override async Task OnInitializedAsync()
     {
         _busy = true;
@@ -74,7 +76,10 @@
         {
             if (Context is not null)
             {
+                //Get all skates
                 _skates = await Context.Skates.OrderBy(s=>s.Name).ToListAsync();
+                //Get global properties
+                _properties = await Context.Properties.ToListAsync();
             }
         }
         finally
@@ -92,18 +97,31 @@
         await Context.Entry(skate).Collection(s => s.SkateUsages).LoadAsync();
 
         SkateStatus oldStatus = skate.Status;
-        skate.Status = newStatus;
+
         if (newStatus == SkateStatus.InUse)
         {
-            SkateUsage? usage = skate.SkateUsages.Find(s => s.TimeIn == null);
-
-            if (usage is null)
+            if (skate.MinutesUsed >
+                Double.Parse(_properties.First(
+                        p => p.Name == "MaxSkateUsageMinutes").Value))
             {
-                usage = new SkateUsage
+                if (await MessageService.Confirm("Skate needs to be sharpened. Are you sure you want to check out?", "Confirmation"))
                 {
-                    TimeOut = DateTime.Now
-                };
-                skate.SkateUsages.Add(usage);
+                    SkateUsage? usage = skate.SkateUsages.Find(s => s.TimeIn == null);
+
+                    if (usage is null)
+                    {
+                        usage = new SkateUsage
+                        {
+                            TimeOut = DateTime.Now
+                        };
+                        skate.SkateUsages.Add(usage);
+                    }
+                }
+                else
+                {
+                    //If canceled, don't check out
+                    newStatus = oldStatus;
+                }
             }
         } else if (newStatus == SkateStatus.Available && oldStatus == SkateStatus.InUse)
         {
@@ -117,7 +135,19 @@
                     skate.addMinutesUsed(skateTimeSpan.Value.TotalMinutes);
                 }
             }
+            //Warn if skate is over max usage minutes
+            if (skate.MinutesUsed > Double.Parse(_properties.First(
+                p => p.Name == "MaxSkateUsageMinutes").Value))
+            {
+                await MessageService.Warning("Skate has reached is max usage. Please set aside for sharpening", "Max Usage Reached");
+            } else if (skate.MinutesUsed > Double.Parse(_properties.First(
+                p => p.Name == "WarnSkateUsageMinutes").Value))
+            {
+                await MessageService.Info("Skate is almost at it's maximum usage. It can still be used but will need to be sharpened soon.", "Approaching max");
+            }
         }
+
+        skate.Status = newStatus;
         await Context.SaveChangesAsync();
         _busy = false;
     }

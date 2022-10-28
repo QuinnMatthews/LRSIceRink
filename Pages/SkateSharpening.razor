@@ -1,0 +1,94 @@
+﻿@page "/Sharpening"
+@using LRSIceRink.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Immutable
+@using System.Globalization
+@inject ApplicationDbContext Context
+@inject IMessageService MessageService
+
+<PageTitle>Skate Sharpening</PageTitle>
+
+<h1>Skate Sharpening</h1>
+<LoadingIndicator @bind-Visible="@_busy">
+    @if (_hasLoaded)
+    {
+        <Field>
+            <TextEdit Placeholder="Search for skate..." @bind-Text="_search"/>
+        </Field>
+
+        @if(_skates is not null) {
+            <Table Striped>
+                <TableBody>
+                    @foreach(var skate in _skates.Where(s => (string.IsNullOrEmpty(_search) || s.Name.Contains(_search)))) {
+                        <TableRow>
+                            <TableRowHeader>@skate.Name</TableRowHeader>
+                            <TableRowCell>@skate.Status.ToString()</TableRowCell>
+                            <TableRowCell>@($"{(skate.MinutesUsed/60):0.## hours}")</TableRowCell>
+                            <TableRowCell>
+                                @if(skate.Status == SkateStatus.Available) {
+                                    <Buttons>
+                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.BeingSharpened)">
+                                            Send to be sharpened
+                                        </Button>
+                                        <Button Color="Color.Secondary" Disabled>Receive from Sharpening</Button>
+                                    </Buttons>
+                                } else if(skate.Status == SkateStatus.BeingSharpened) {
+                                    <Buttons>
+                                        <Button Color="Color.Secondary" Disabled>Send to be sharpened</Button>
+                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)">
+                                            Receive from Sharpening
+                                        </Button>
+                                    </Buttons>
+                                } else {
+                                    <Buttons>
+                                        <Button Color="Color.Secondary" Disabled>Send to be sharpened</Button>
+                                        <Button Color="Color.Secondary" Disabled>Receive from Sharpening</Button>
+                                    </Buttons>
+                                }
+                            </TableRowCell>
+                        </TableRow>
+                    }
+                </TableBody>
+            </Table>
+        } else //_skates is null
+          {
+            <p>Uh oh! Either something went wrong or there are no skates to display!</p>
+        }
+    }
+</LoadingIndicator>
+@code {
+    private bool _busy, _hasLoaded;
+    private List<Skate>? _skates;
+    private string? _search;
+    private List<Property>? _properties;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _busy = true;
+        _hasLoaded = false;
+
+        if (Context is not null)
+        {
+            //Get all skates
+            _skates = await Context.Skates.OrderBy(s=>s.MinutesUsed).ToListAsync();
+            //Get global properties
+            _properties = await Context.Properties.ToListAsync();
+        }
+
+        await base.OnInitializedAsync();
+        _busy = false;
+        _hasLoaded = true;
+    }
+
+    protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus)
+    {
+        if (newStatus == SkateStatus.Available)
+        {
+            skate.MinutesUsed = 0;
+        }
+        _busy = true;
+        skate.Status = newStatus; 
+        await Context.SaveChangesAsync();
+        _busy = false;
+    }
+}

@@ -1,0 +1,95 @@
+﻿@page "/checkout"
+@using LRSIceRink.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Immutable
+@inject ApplicationDbContext Context   
+
+<PageTitle>Skate Check Out</PageTitle>
+
+<h1>Counter</h1>
+@if (!busy)
+{
+    <Field>
+        <TextEdit Placeholder="Search for skate..." @bind-Text="search"/>
+    </Field>
+    <Table Striped>
+        <TableBody>
+            @foreach (var skate in skates.Where(s => (search == null || search == "" || s.Name.Contains(search))))
+            {
+                <TableRow>
+                    <TableRowHeader>@skate.Name</TableRowHeader>
+                    <TableRowCell>@skate.Status.ToString()</TableRowCell>
+                    <TableRowCell>
+                    @if (skate.Status == SkateStatus.Available)
+                    {
+                            <Buttons>
+                                <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)">
+                                     Check Out
+                                </Button>
+                                <Button Color="Color.Secondary" Disabled>Check In</Button>
+                            </Buttons>
+                    } else if (skate.Status == SkateStatus.InUse)
+                    {
+                        <Buttons>
+                            <Button Color="Color.Secondary" Disabled>Check Out</Button>
+                            <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)">
+                                Check In
+                            </Button>   
+                        </Buttons>
+                    }
+                    else
+                    {
+                        <Buttons>
+                            <Button Color="Color.Secondary" Disabled>Check Out</Button>
+                            <Button Color="Color.Secondary" Disabled>Check In</Button>
+                        </Buttons>
+                    }
+                    </TableRowCell>
+                </TableRow>
+            }
+        </TableBody>
+    </Table>
+}
+@code {
+    private List<Skate> skates;
+    private bool busy;
+    private string search;
+    protected override async Task OnInitializedAsync()
+    {
+        busy = true;
+
+        try
+        {
+            if (Context is not null && Context.Skates is not null)
+            {
+                skates = await Context.Skates.OrderBy(s=>s.Name).ToListAsync();
+                                
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus)
+    {
+        SkateStatus oldStatus = skate.Status;
+        skate.Status = newStatus;
+        if (newStatus == SkateStatus.InUse)
+        {
+            SkateUsage usage = new SkateUsage();
+            skate.SkateUsages.Add(usage);
+        } else if (newStatus == SkateStatus.Available && oldStatus == SkateStatus.InUse)
+        {
+            SkateUsage usage = skate.SkateUsages.Find(s => s.TimeIn == null);
+            if (usage is not null)
+            {
+                usage.TimeIn = DateTime.Now;
+            }
+        }
+        await Context.SaveChangesAsync();
+    }
+}

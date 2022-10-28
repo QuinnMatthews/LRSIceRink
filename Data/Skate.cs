@@ -9,5 +9,6 @@
         public Guid Id { get; set; }
         public string Name { get; set; }
         public SkateStatus Status { get; set; }
+        public virtual List<SkateUsage> SkateUsages { get; set; }
     }
 }

@@ -7,68 +7,76 @@
 <PageTitle>Skate Check Out</PageTitle>
 
 <h1>Counter</h1>
-@if (!busy)
+@if (!_busy)
 {
     <Field>
-        <TextEdit Placeholder="Search for skate..." @bind-Text="search"/>
+        <TextEdit Placeholder="Search for skate..." @bind-Text="_search"/>
     </Field>
-    <Table Striped>
-        <TableBody>
-            @foreach (var skate in skates.Where(s => (search == null || search == "" || s.Name.Contains(search))))
-            {
-                <TableRow>
-                    <TableRowHeader>@skate.Name</TableRowHeader>
-                    <TableRowCell>@skate.Status.ToString()</TableRowCell>
-                    <TableRowCell>
-                    @if (skate.Status == SkateStatus.Available)
-                    {
-                            <Buttons>
-                                <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)">
-                                     Check Out
-                                </Button>
-                                <Button Color="Color.Secondary" Disabled>Check In</Button>
-                            </Buttons>
-                    } else if (skate.Status == SkateStatus.InUse)
-                    {
-                        <Buttons>
-                            <Button Color="Color.Secondary" Disabled>Check Out</Button>
-                            <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)">
-                                Check In
-                            </Button>   
-                        </Buttons>
-                    }
-                    else
-                    {
-                        <Buttons>
-                            <Button Color="Color.Secondary" Disabled>Check Out</Button>
-                            <Button Color="Color.Secondary" Disabled>Check In</Button>
-                        </Buttons>
-                    }
-                    </TableRowCell>
-                </TableRow>
-            }
-        </TableBody>
-    </Table>
+    @if (_skates is not null)
+    {
+        <Table Striped>
+            <TableBody>
+                @foreach (var skate in _skates.Where(s => (string.IsNullOrEmpty(_search) || s.Name.Contains(_search))))
+                {
+                    <TableRow>
+                        <TableRowHeader>@skate.Name</TableRowHeader>
+                        <TableRowCell>@skate.Status.ToString()</TableRowCell>
+                        <TableRowCell>
+                            @if (skate.Status == SkateStatus.Available)
+                            {
+                                <Buttons>
+                                    <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)">
+                                        Check Out
+                                    </Button>
+                                    <Button Color="Color.Secondary" Disabled>Check In</Button>
+                                </Buttons>
+                            }
+                            else if (skate.Status == SkateStatus.InUse)
+                            {
+                                <Buttons>
+                                    <Button Color="Color.Secondary" Disabled>Check Out</Button>
+                                    <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)">
+                                        Check In
+                                    </Button>
+                                </Buttons>
+                            }
+                            else
+                            {
+                                <Buttons>
+                                    <Button Color="Color.Secondary" Disabled>Check Out</Button>
+                                    <Button Color="Color.Secondary" Disabled>Check In</Button>
+                                </Buttons>
+                            }
+                        </TableRowCell>
+                    </TableRow>
+                }
+            </TableBody>
+        </Table>
+    }
+    else //_skates is null 
+    {
+        <p>Uh oh! Either something went wrong or there are no skates to display!</p>
+    }
 }
 @code {
-    private List<Skate> skates;
-    private bool busy;
-    private string search;
+    private List<Skate>? _skates;
+    private bool _busy;
+    private string? _search;
     protected override async Task OnInitializedAsync()
     {
-        busy = true;
+        _busy = true;
 
         try
         {
-            if (Context is not null && Context.Skates is not null)
+            if (Context is not null)
             {
-                skates = await Context.Skates.OrderBy(s=>s.Name).ToListAsync();
+                _skates = await Context.Skates.OrderBy(s=>s.Name).ToListAsync();
                                 
             }
         }
         finally
         {
-            busy = false;
+            _busy = false;
         }
 
         await base.OnInitializedAsync();
@@ -76,15 +84,25 @@
 
     protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus)
     {
+        await Context.Entry(skate).Collection(s => s.SkateUsages).LoadAsync();
+
         SkateStatus oldStatus = skate.Status;
         skate.Status = newStatus;
         if (newStatus == SkateStatus.InUse)
         {
-            SkateUsage usage = new SkateUsage();
-            skate.SkateUsages.Add(usage);
+            SkateUsage? usage = skate.SkateUsages.Find(s => s.TimeIn == null);
+
+            if (usage is null)
+            {
+                usage = new SkateUsage
+                {
+                    TimeOut = DateTime.Now
+                };
+                skate.SkateUsages.Add(usage);
+            }
         } else if (newStatus == SkateStatus.Available && oldStatus == SkateStatus.InUse)
         {
-            SkateUsage usage = skate.SkateUsages.Find(s => s.TimeIn == null);
+            SkateUsage? usage = skate.SkateUsages.Find(s => s.TimeIn == null);
             if (usage is not null)
             {
                 usage.TimeIn = DateTime.Now;

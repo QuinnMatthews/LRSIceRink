@@ -7,5 +7,6 @@ namespace LRSIceRink.Data {
             : base(options) {
         }
         public DbSet<Skate> Skates { get; set; }
+        public DbSet<SkateUsage> SkatesUsage { get; set; }
     }
 }

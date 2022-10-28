@@ -7,7 +7,8 @@
 <PageTitle>Skate Check Out</PageTitle>
 
 <h1>Counter</h1>
-@if (!_busy)
+<LoadingIndicator @bind-Visible="@_busy">
+@if (_hasLoaded)
 {
     <Field>
         <TextEdit Placeholder="Search for skate..." @bind-Text="_search"/>
@@ -58,13 +59,16 @@
         <p>Uh oh! Either something went wrong or there are no skates to display!</p>
     }
 }
+</LoadingIndicator>
 @code {
     private List<Skate>? _skates;
     private bool _busy;
+    private bool _hasLoaded;
     private string? _search;
     protected override async Task OnInitializedAsync()
     {
         _busy = true;
+        _hasLoaded = false;
 
         try
         {
@@ -80,10 +84,12 @@
         }
 
         await base.OnInitializedAsync();
+        _hasLoaded = true;
     }
 
     protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus)
     {
+        _busy = true;
         await Context.Entry(skate).Collection(s => s.SkateUsages).LoadAsync();
 
         SkateStatus oldStatus = skate.Status;
@@ -114,5 +120,6 @@
             }
         }
         await Context.SaveChangesAsync();
+        _busy = false;
     }
 }

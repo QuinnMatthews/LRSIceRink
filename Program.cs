@@ -37,7 +37,7 @@ builder.Services.AddTransient<IEmailSender, EmailSender>(i => new EmailSender(bu
 
 builder.Services
     .AddBlazorise(options => {
-        options.Immediate = true;
+        options.Immediate = false;
     })
     .AddBootstrapProviders()
     .AddFontAwesomeIcons();
@@ -65,7 +65,7 @@ using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
     foreach (var role in new List<string>
-                 {"GlobalAdmin", "SkateAdmin", "UserAdmin", "Sharpening", "RentalOperator"})
+                 {"GlobalAdmin", "SkateAdmin", "UserAdmin", "Sharpening", "RentalOperator", "ReportViewer"})
     {
         if (!await roleManager.RoleExistsAsync(role))
         {

@@ -12,6 +12,7 @@ namespace LRSIceRink.Data {
         public DbSet<Skate> Skates { get; set; }
         public DbSet<SkateUsage> SkatesUsage { get; set; }
         public DbSet<Property> Properties { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             base.OnModelCreating(modelBuilder);
 

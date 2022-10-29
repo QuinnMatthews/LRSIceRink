@@ -2,10 +2,11 @@
 @attribute [Authorize(Roles = "GlobalAdmin, Operator")]
 @using LRSIceRink.Data
 @using Microsoft.EntityFrameworkCore
-@using System.Collections.Immutable
-@using System.Globalization
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
 @inject ApplicationDbContext Context
-@inject IMessageService MessageService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Skate Administration</PageTitle>
 
@@ -27,7 +28,7 @@
                             <TableRowCell>
                                 <Row>
                                 <Column>
-                                    <NumericEdit TValue="double" Value="skate.MinutesUsed" Min="0" ValueChanged="min => UpdateSkateMinutes(skate, min)"/>
+                                    <NumericPicker Decimals="0" TValue="double" Value="skate.MinutesUsed" Min="0" ValueChanged="min => UpdateSkateMinutes(skate, min)"/>
                                 </Column>
                                 <Column>
                                     <span>minutes</span>
@@ -85,6 +86,7 @@
     private List<Property>? _properties;
     private bool _addSkateModalVisible;
     private string _newSkateName;
+    private ApplicationUser user;
 
     protected override async Task OnInitializedAsync() {
         _busy = true;
@@ -95,7 +97,8 @@
             //Get global properties
             _properties = await Context.Properties.ToListAsync();
         }
-
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = await UserManager.GetUserAsync(authState.User);
         await base.OnInitializedAsync();
         _busy = false;
         _hasLoaded = true;
@@ -103,7 +106,15 @@
 
     protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus) {
         _busy = true;
+        AuditLog audit = new AuditLog()
+        {
+            Timestamp = DateTime.Now,
+            Skate = skate,
+            User = user,
+            Action = $"Changed skate status from {skate.Status} to {newStatus}"
+        };
         skate.Status = newStatus;
+        Context.AuditLogs.Add(audit);
         await Context.SaveChangesAsync();
         _busy = false;
     }
@@ -111,7 +122,14 @@
     protected async Task UpdateSkateMinutes(Skate skate, double minutes)
     {
         _busy = true;
+        AuditLog audit = new AuditLog() {
+                Timestamp = DateTime.Now,
+                Skate = skate,
+                User = user,
+                Action = $"Changed skate usage minutes from {skate.MinutesUsed} to {minutes}"
+            };
         skate.MinutesUsed = minutes;
+        Context.AuditLogs.Add(audit);
         await Context.SaveChangesAsync();
         _busy = false;
     }
@@ -123,8 +141,15 @@
         {
             Name = _newSkateName
         };
+        AuditLog audit = new AuditLog() {
+            Timestamp = DateTime.Now,
+            Skate = skate,
+                User = user,
+            Action = $"Added new skate"
+        };
         _skates.Add(skate);
         Context.Skates.Add(skate);
+        Context.AuditLogs.Add(audit);
         await Context.SaveChangesAsync();
         _newSkateName = "";
         _addSkateModalVisible = false;

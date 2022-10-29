@@ -11,7 +11,7 @@
         public SkateStatus Status { get; set; }
         public double MinutesUsed { get; set; }
         public virtual List<SkateUsage> SkateUsages { get; set; }
-
+        public virtual List<AuditLog> SkateHistory { get; set; }
         public void addMinutesUsed(double minutes)
         {
             MinutesUsed += minutes;

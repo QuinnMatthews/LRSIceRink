@@ -2,11 +2,10 @@
 @attribute [Authorize(Roles = "GlobalAdmin, UserAdmin")]
 @using LRSIceRink.Data
 @using Microsoft.EntityFrameworkCore
-@using System.Collections.Immutable
-@using System.Globalization
 @using Microsoft.AspNetCore.Identity
 @inject ApplicationDbContext Context
-@inject IMessageService MessageService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>User Administration</PageTitle>
 
@@ -46,7 +45,7 @@
     private List<ApplicationUser>? _users;
     private string? _search;
     private List<Property>? _properties;
-
+    private ApplicationUser loggedInUser;
     protected override async Task OnInitializedAsync() {
         _busy = true;
         _hasLoaded = false;
@@ -58,6 +57,9 @@
             _properties = await Context.Properties.ToListAsync();
 
         }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        loggedInUser = await UserManager.GetUserAsync(authState.User);
 
         await base.OnInitializedAsync();
         _busy = false;

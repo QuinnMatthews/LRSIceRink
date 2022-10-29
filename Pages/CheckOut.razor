@@ -2,9 +2,13 @@
 @attribute [Authorize(Roles = "GlobalAdmin, SkateAdmin, RentalOperator")]
 @using LRSIceRink.Data
 @using Microsoft.EntityFrameworkCore
-@using System.Collections.Immutable
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
 @inject ApplicationDbContext Context   
 @inject IMessageService MessageService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 <PageTitle>Skate Check Out</PageTitle>
 
 <h1>Rental Check Out/Check In</h1>
@@ -68,6 +72,7 @@
     private bool _hasLoaded;
     private string? _search;
     private List<Property>? _properties;
+    private ApplicationUser user;
     protected override async Task OnInitializedAsync()
     {
         _busy = true;
@@ -88,6 +93,9 @@
             _busy = false;
         }
 
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = await UserManager.GetUserAsync(authState.User);
+
         await base.OnInitializedAsync();
         _hasLoaded = true;
     }
@@ -98,6 +106,14 @@
         await Context.Entry(skate).Collection(s => s.SkateUsages).LoadAsync();
 
         SkateStatus oldStatus = skate.Status;
+
+        AuditLog audit = new AuditLog()
+        {
+            Timestamp = DateTime.Now,
+            Skate = skate,
+            User = user,
+            Action = $"Changed skate status from {skate.Status} to {newStatus}"
+        };
 
         if (newStatus == SkateStatus.InUse)
         {
@@ -148,6 +164,7 @@
             }
         }
 
+        Context.AuditLogs.Add(audit);
         skate.Status = newStatus;
         await Context.SaveChangesAsync();
         _busy = false;

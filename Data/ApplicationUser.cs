@@ -7,6 +7,7 @@ namespace LRSIceRink.Data {
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public ICollection<ApplicationUserRole> UserRoles { get; set; }
+        public virtual List<AuditLog> AuditHistory { get; set; }
 
     }
     public class ApplicationUserRole : IdentityUserRole<string>

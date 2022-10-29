@@ -1,11 +1,11 @@
 ﻿@page "/Sharpening"
 @attribute [Authorize(Roles = "GlobalAdmin, SkateAdmin, Sharpening")]
 @using LRSIceRink.Data
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
-@using System.Collections.Immutable
-@using System.Globalization
 @inject ApplicationDbContext Context
-@inject IMessageService MessageService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Skate Sharpening</PageTitle>
 
@@ -62,7 +62,7 @@
     private List<Skate>? _skates;
     private string? _search;
     private List<Property>? _properties;
-
+    private ApplicationUser user;
     protected override async Task OnInitializedAsync()
     {
         _busy = true;
@@ -76,6 +76,9 @@
             _properties = await Context.Properties.ToListAsync();
         }
 
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = await UserManager.GetUserAsync(authState.User);
+
         await base.OnInitializedAsync();
         _busy = false;
         _hasLoaded = true;
@@ -83,8 +86,22 @@
 
     protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus)
     {
+        AuditLog audit = new AuditLog()
+        {
+            Timestamp = DateTime.Now,
+            Skate = skate,
+            User = user,
+            Action = $"Changed skate status from {skate.Status} to {newStatus}"
+        };
         if (newStatus == SkateStatus.Available)
         {
+            AuditLog audit2 = new AuditLog()
+            {
+                Timestamp = DateTime.Now,
+                Skate = skate,
+                User = user,
+                Action = $"Reset skate usage minutes (Previously {skate.MinutesUsed} minutes)"
+            };
             skate.MinutesUsed = 0;
         }
         _busy = true;

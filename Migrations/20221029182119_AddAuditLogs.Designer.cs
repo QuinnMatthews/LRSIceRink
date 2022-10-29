@@ -4,6 +4,7 @@ using LRSIceRink.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LRSIceRink.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20221029182119_AddAuditLogs")]
+    partial class AddAuditLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -160,7 +162,7 @@ namespace LRSIceRink.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AuditLogs", (string)null);
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("LRSIceRink.Data.Property", b =>
@@ -179,7 +181,7 @@ namespace LRSIceRink.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Properties", (string)null);
+                    b.ToTable("Properties");
 
                     b.HasData(
                         new
@@ -214,7 +216,7 @@ namespace LRSIceRink.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Skates", (string)null);
+                    b.ToTable("Skates");
                 });
 
             modelBuilder.Entity("LRSIceRink.Data.SkateUsage", b =>
@@ -236,7 +238,7 @@ namespace LRSIceRink.Migrations
 
                     b.HasIndex("SkateId");
 
-                    b.ToTable("SkatesUsage", (string)null);
+                    b.ToTable("SkatesUsage");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

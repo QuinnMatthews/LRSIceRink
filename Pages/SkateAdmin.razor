@@ -1,5 +1,5 @@
 ﻿@page "/skateAdmin"
-@attribute [Authorize(Roles = "SuperAdmin, Admin")]
+@attribute [Authorize(Roles = "GlobalAdmin, Operator")]
 @using LRSIceRink.Data
 @using Microsoft.EntityFrameworkCore
 @using System.Collections.Immutable
@@ -33,17 +33,17 @@
                                     @if (skate.Status != SkateStatus.Available) {
                                         <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)"> Available</Button>
                                     } else {
-                                        <Button Color="Color.Secondary" Disabled> Available</Button>
+                                        <Button Color="Color.Dark"> Available</Button>
                                     }
                                     @if(skate.Status != SkateStatus.InUse) {
                                         <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)"> In Use</Button>
                                     } else {
-                                        <Button Color="Color.Secondary" Disabled> In Use</Button>
+                                        <Button Color="Color.Primary"> In Use</Button>
                                     }
                                     @if(skate.Status != SkateStatus.BeingSharpened) {
                                         <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.BeingSharpened)"> Being Sharpened</Button>
                                     } else {
-                                        <Button Color="Color.Secondary" Disabled> Being Sharpened</Button>
+                                        <Button Color="Color.Primary"> Being Sharpened</Button>
                                     }
                                 </Buttons>
                             </TableRowCell>
@@ -51,10 +51,25 @@
                     }
                 </TableBody>
             </Table>
-        } else //_skates is null
-        {
-            <p>Uh oh! Either something went wrong or there are no skates to display!</p>
-        }
+            <Button Color="Color.Success" Size="Size.Small" Clicked="() => _addSkateModalVisible=true">Add Skate</Button>
+            <Modal @bind-Visible="@_addSkateModalVisible">
+                <ModalContent Centered>
+                    <ModalHeader>
+                        <ModalTitle>Add Skate</ModalTitle>
+                    </ModalHeader>
+                    <ModalBody>
+                        <Field>
+                            <FieldLabel>Name</FieldLabel>
+                            <TextEdit Placeholder="Enter name..." @bind-Text="@_newSkateName" />
+                        </Field>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button Color="Color.Secondary" Clicked="() => { _addSkateModalVisible = false; }">Cancel</Button>
+                        <Button Color="Color.Primary" Clicked="AddSkate">Add Skate</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+        } 
     }
 </LoadingIndicator>
 @code {
@@ -62,11 +77,12 @@
     private List<Skate>? _skates;
     private string? _search;
     private List<Property>? _properties;
+    private bool _addSkateModalVisible;
+    private string _newSkateName;
 
     protected override async Task OnInitializedAsync() {
         _busy = true;
         _hasLoaded = false;
-
         if(Context is not null) {
             //Get all skates
             _skates = await Context.Skates.OrderBy(s => s.Name).ToListAsync();
@@ -91,6 +107,21 @@
         _busy = true;
         skate.MinutesUsed = minutes;
         await Context.SaveChangesAsync();
+        _busy = false;
+    }
+
+    protected async Task AddSkate()
+    {
+        _busy = true;
+        Skate skate = new Skate()
+        {
+            Name = _newSkateName
+        };
+        _skates.Add(skate);
+        Context.Skates.Add(skate);
+        await Context.SaveChangesAsync();
+        _newSkateName = "";
+        _addSkateModalVisible = false;
         _busy = false;
     }
 }

@@ -19,18 +19,20 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("azProd");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
         {
             options.SignIn.RequireConfirmedAccount = false;
         })
     .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddRoles<IdentityRole>()
-    .AddRoleManager<RoleManager<IdentityRole>>()
+    .AddRoles<ApplicationRole>()
+    .AddRoleManager<RoleManager<ApplicationRole>>()
+    .AddUserManager<UserManager<ApplicationUser>>()
     .AddDefaultTokenProviders();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<ApplicationUser>>();
 builder.Services.AddTransient<IEmailSender, EmailSender>(i => new EmailSender(builder.Configuration.GetConnectionString("azEmailSender")));
 
 builder.Services
@@ -61,15 +63,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    foreach (var role in Enum.GetNames(typeof(AppRoles.UserRole)))
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+    foreach (var role in new List<string>
+                 {"GlobalAdmin", "SkateAdmin", "UserAdmin", "Sharpening", "RentalOperator"})
     {
         if (!await roleManager.RoleExistsAsync(role))
         {
-            await roleManager.CreateAsync(new IdentityRole(role));
+            await roleManager.CreateAsync(new ApplicationRole(role));
         }
     }
 }
+
 
 app.MapControllers();
 app.MapBlazorHub();

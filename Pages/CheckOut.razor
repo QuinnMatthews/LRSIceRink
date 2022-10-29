@@ -1,5 +1,5 @@
 ﻿@page "/checkout"
-@attribute [Authorize(Roles = "SuperAdmin, Admin, Operator, User")]
+@attribute [Authorize(Roles = "GlobalAdmin, SkateAdmin, RentalOperator")]
 @using LRSIceRink.Data
 @using Microsoft.EntityFrameworkCore
 @using System.Collections.Immutable

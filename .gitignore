@@ -365,3 +365,6 @@ FodyWeavers.xsd
 # Local App Settings
 appsettings.json
 appsettings.Development.json
+
+# SQL files
+*sql

@@ -1,0 +1,73 @@
+﻿@page "/UserAdmin"
+@attribute [Authorize(Roles = "GlobalAdmin, UserAdmin")]
+@using LRSIceRink.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Immutable
+@using System.Globalization
+@using Microsoft.AspNetCore.Identity
+@inject ApplicationDbContext Context
+@inject IMessageService MessageService
+
+<PageTitle>User Administration</PageTitle>
+
+<h1>User Administration</h1>
+<p>Here you can manage users and their permissions</p>
+<LoadingIndicator @bind-Visible="@_busy">
+    @if(_hasLoaded) {
+        <Field>
+            <TextEdit Placeholder="Search for user..." @bind-Text="_search" />
+        </Field>
+
+        @if(_users is not null) {
+            <Table Striped>
+                <TableHeader>
+                    <TableHeaderCell>Username</TableHeaderCell>
+                    <TableHeaderCell>Email</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                    @foreach (var user in _users.Where(s => (string.IsNullOrEmpty(_search) || s.UserName.Contains(_search) || s.Email.Contains(_search))))
+                    {
+                        <TableRow>
+                            <TableRowHeader>@user.UserName</TableRowHeader>
+                            <TableRowCell>@user.Email</TableRowCell>
+                            <TableRowCell><Button Color="Color.Danger" Clicked="async() => await DeleteUser(user)">Delete User</Button></TableRowCell>
+                        </TableRow>
+                    }
+                </TableBody>
+            </Table>
+        } else
+        {
+            <p>Uh oh! Either something went wrong or there are no users</p>
+        }
+    }
+</LoadingIndicator>
+@code {
+    private bool _busy, _hasLoaded;
+    private List<ApplicationUser>? _users;
+    private string? _search;
+    private List<Property>? _properties;
+
+    protected override async Task OnInitializedAsync() {
+        _busy = true;
+        _hasLoaded = false;
+
+        if(Context is not null) {
+            //Get all skates
+            _users = await Context.Users.OrderBy(u => u.UserName).ToListAsync();
+            //Get global properties
+            _properties = await Context.Properties.ToListAsync();
+
+        }
+
+        await base.OnInitializedAsync();
+        _busy = false;
+        _hasLoaded = true;
+    }
+
+    protected async Task DeleteUser(IdentityUser user) {
+        _busy = true;
+        Context.Remove(user);
+        await Context.SaveChangesAsync();
+        _busy = false;
+    }
+}

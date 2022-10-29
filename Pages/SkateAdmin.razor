@@ -25,25 +25,31 @@
                             <TableRowHeader>@skate.Name</TableRowHeader>
                             <TableRowCell>@skate.Status.ToString()</TableRowCell>
                             <TableRowCell>
-                                <NumericEdit TValue="double" Value="skate.MinutesUsed" Min="0" ValueChanged="min => UpdateSkateMinutes(skate, min)"/>
-                                <p>minutes</p>
+                                <Row>
+                                <Column>
+                                    <NumericEdit TValue="double" Value="skate.MinutesUsed" Min="0" ValueChanged="min => UpdateSkateMinutes(skate, min)"/>
+                                </Column>
+                                <Column>
+                                    <span>minutes</span>
+                                </Column>
+                                </Row>
                             </TableRowCell>
                             <TableRowCell>
                                 <Buttons>
                                     @if (skate.Status != SkateStatus.Available) {
                                         <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)"> Available</Button>
                                     } else {
-                                        <Button Color="Color.Dark"> Available</Button>
+                                        <Button Color="Color.Secondary" Disabled> Available</Button>
                                     }
                                     @if(skate.Status != SkateStatus.InUse) {
                                         <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)"> In Use</Button>
                                     } else {
-                                        <Button Color="Color.Primary"> In Use</Button>
+                                        <Button Color="Color.Secondary" Disabled> In Use</Button>
                                     }
                                     @if(skate.Status != SkateStatus.BeingSharpened) {
                                         <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.BeingSharpened)"> Being Sharpened</Button>
                                     } else {
-                                        <Button Color="Color.Primary"> Being Sharpened</Button>
+                                        <Button Color="Color.Secondary" Disabled> Being Sharpened</Button>
                                     }
                                 </Buttons>
                             </TableRowCell>

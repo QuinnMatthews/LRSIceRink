@@ -1,27 +1,34 @@
 ﻿@page "/UserAdmin"
 @attribute [Authorize(Roles = "GlobalAdmin, UserAdmin")]
 @using LRSIceRink.Data
+@using LRSIceRink.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity.UI.Services
+@using System.Data.SqlTypes
 @inject ApplicationDbContext Context
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IMessageService MessageService
+@inject IEmailSender EmailSender
 
 <PageTitle>User Administration</PageTitle>
 
 <h1>User Administration</h1>
 <p>Here you can manage users and their permissions</p>
 <LoadingIndicator @bind-Visible="@_busy">
-    @if(_hasLoaded) {
+    @if (_hasLoaded)
+    {
         <Field>
-            <TextEdit Placeholder="Search for user..." @bind-Text="_search" />
+            <TextEdit Placeholder="Search for user..." @bind-Text="_search"/>
         </Field>
-
-        @if(_users is not null) {
+        @if (_users is not null)
+        {
             <Table Striped>
                 <TableHeader>
                     <TableHeaderCell>Username</TableHeaderCell>
                     <TableHeaderCell>Email</TableHeaderCell>
+                    <TableHeaderCell ColumnSpan="3">Roles</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
                     @foreach (var user in _users.Where(s => (string.IsNullOrEmpty(_search) || s.UserName.Contains(_search) || s.Email.Contains(_search))))
@@ -29,33 +36,74 @@
                         <TableRow>
                             <TableRowHeader>@user.UserName</TableRowHeader>
                             <TableRowCell>@user.Email</TableRowCell>
-                            <TableRowCell><Button Color="Color.Danger" Clicked="async() => await DeleteUser(user)">Delete User</Button></TableRowCell>
+                            <TableRowCell>
+                                <Buttons>
+                                    <Dropdown>
+                                        <DropdownToggle Color="Color.Primary">Add Role</DropdownToggle>
+                                        <DropdownMenu>
+                                            @foreach (var role in _roles)
+                                            {
+                                                if (!IsInRole(user, role))
+                                                {
+                                                    <DropdownItem Clicked="async () => await AddUserRole(user, role)">@role.Name</DropdownItem>
+                                                }
+                                            }
+                                        </DropdownMenu>
+                                    </Dropdown>
+                                    <Dropdown>
+                                        <DropdownToggle Color="Color.Secondary">Remove Role</DropdownToggle>
+                                        <DropdownMenu>
+                                            @foreach (var role in _roles)
+                                            {
+                                                if (IsInRole(user, role))
+                                                {
+                                                    <DropdownItem Clicked="async () => await RemoveUserRole(user, role)">@role.Name</DropdownItem>
+                                                }
+                                            }
+                                        </DropdownMenu>
+                                    </Dropdown>
+                                </Buttons>
+                            </TableRowCell>
+                            <TableRowCell><Button Color="Color.Danger" Clicked="async () => await DeleteUser(user)">Delete User</Button></TableRowCell>
                         </TableRow>
                     }
                 </TableBody>
             </Table>
-        } else
+        }
+        else
         {
             <p>Uh oh! Either something went wrong or there are no users</p>
         }
     }
 </LoadingIndicator>
+
 @code {
     private bool _busy, _hasLoaded;
     private List<ApplicationUser>? _users;
     private string? _search;
     private List<Property>? _properties;
     private ApplicationUser loggedInUser;
-    protected override async Task OnInitializedAsync() {
+    private List<ApplicationRole> _roles;
+    private List<ApplicationUserRole> _userRoles;
+
+    protected override async Task OnInitializedAsync()
+    {
         _busy = true;
         _hasLoaded = false;
 
-        if(Context is not null) {
+        if (Context is not null)
+        {
             //Get all skates
-            _users = await Context.Users.OrderBy(u => u.UserName).ToListAsync();
+            _users = await Context.Users
+                .OrderBy(u => u.UserName)
+                .Include(u => u.UserRoles)
+                .ToListAsync();
             //Get global properties
             _properties = await Context.Properties.ToListAsync();
-
+            //Get all Roles
+            _roles = await Context.Roles.ToListAsync();
+            //Get all UserRoles
+            _userRoles = await Context.UserRoles.ToListAsync();
         }
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -66,10 +114,88 @@
         _hasLoaded = true;
     }
 
-    protected async Task DeleteUser(IdentityUser user) {
+    protected async Task DeleteUser(ApplicationUser user)
+    {
         _busy = true;
-        Context.Remove(user);
-        await Context.SaveChangesAsync();
+        var superAdminRole = await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync();
+        var superAdminUserRole = await Context.UserRoles.FirstOrDefaultAsync(ur => ur.Role == superAdminRole && ur.User == user);
+        if (superAdminUserRole is not null) //User is superadmin
+        {
+            var sendEmailTask = EmailSender.SendEmailAsync(
+                "Quinn.matthews@lrs.com",
+                "Someone Tried to delete a Global Admin account",
+                $"{loggedInUser.UserName} tried to delete a Global admin account");
+            await MessageService.Error("You can't delete a global admin. The authorities have been alerted. ", "Access Denied");
+
+            await sendEmailTask;
+        }
+        else
+        {
+            Context.Remove(user);
+            await Context.SaveChangesAsync();
+        }
         _busy = false;
     }
+
+    protected async Task AddUserRole(ApplicationUser user, ApplicationRole role)
+    {
+        _busy = true;
+        if (role == await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync())
+        {
+            var sendEmailTask = EmailSender.SendEmailAsync(
+                "Quinn.matthews@lrs.com",
+                "Someone Tried to elevate permissions",
+                $"{loggedInUser.UserName} tried to make someone a global admin");
+            await MessageService.Error("You can't add new global admins, the authorities have been alerted", "Access Denied");
+            await sendEmailTask;
+            await sendEmailTask;
+        }
+        else
+        {
+            var userRole = new ApplicationUserRole()
+            {
+                Role = role,
+                User = user
+            };
+            _userRoles.Add(userRole);
+            Context.Add(userRole);
+            await Context.SaveChangesAsync();
+        }
+
+        _busy = false;
+    }
+    protected async Task RemoveUserRole(ApplicationUser user, ApplicationRole role)
+    {
+        _busy = true;
+        if (role == await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync())
+        {
+            var sendEmailTask = EmailSender.SendEmailAsync(
+                "Quinn.matthews@lrs.com",
+                "Someone Tried to remove global admin permissions",
+                $"{loggedInUser.UserName} tried to remove a global admin's permissions");
+            await MessageService.Error("You can't remove global admin, the authorities have been alerted", "Access Denied");
+            await sendEmailTask;
+        }
+        else
+        {
+            var userRole = new ApplicationUserRole()
+            {
+                Role = role,
+                User = user,
+                UserId = user.Id,
+                RoleId = role.Id
+            };
+            var _role = _userRoles.Find(ur => ur.Role == role && ur.User == user);
+            Context.Remove(_role ?? userRole);
+            _userRoles.Remove(_role);
+            await Context.SaveChangesAsync();
+        }
+
+        _busy = false;
+    }
+    protected bool IsInRole(ApplicationUser user, ApplicationRole role)
+    {
+        return (_userRoles.FirstOrDefault(ur => ur.Role == role && ur.User == user) is not null);
+    }
+
 }

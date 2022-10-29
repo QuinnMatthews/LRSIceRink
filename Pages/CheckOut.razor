@@ -1,65 +1,66 @@
 ﻿@page "/checkout"
+@attribute [Authorize(Roles = "SuperAdmin, Admin, Operator, User")]
 @using LRSIceRink.Data
 @using Microsoft.EntityFrameworkCore
 @using System.Collections.Immutable
 @inject ApplicationDbContext Context   
 @inject IMessageService MessageService
-
 <PageTitle>Skate Check Out</PageTitle>
 
 <h1>Rental Check Out/Check In</h1>
 <LoadingIndicator @bind-Visible="@_busy">
-@if (_hasLoaded)
-{
-    <Field>
-        <TextEdit Placeholder="Search for skate..." @bind-Text="_search"/>
-    </Field>
-    @if (_skates is not null)
+    @if (_hasLoaded)
     {
-        <Table Striped>
-            <TableBody>
-                @foreach (var skate in _skates.Where(s => (string.IsNullOrEmpty(_search) || s.Name.Contains(_search))))
-                {
-                    <TableRow>
-                        <TableRowHeader>@skate.Name</TableRowHeader>
-                        <TableRowCell>@skate.Status.ToString()</TableRowCell>
-                        <TableRowCell>
-                            @if (skate.Status == SkateStatus.Available)
-                            {
-                                <Buttons>
-                                    <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)">
-                                        Check Out
-                                    </Button>
-                                    <Button Color="Color.Secondary" Disabled>Check In</Button>
-                                </Buttons>
-                            }
-                            else if (skate.Status == SkateStatus.InUse)
-                            {
-                                <Buttons>
-                                    <Button Color="Color.Secondary" Disabled>Check Out</Button>
-                                    <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)">
-                                        Check In
-                                    </Button>
-                                </Buttons>
-                            }
-                            else
-                            {
-                                <Buttons>
-                                    <Button Color="Color.Secondary" Disabled>Check Out</Button>
-                                    <Button Color="Color.Secondary" Disabled>Check In</Button>
-                                </Buttons>
-                            }
-                        </TableRowCell>
-                    </TableRow>
-                }
-            </TableBody>
-        </Table>
+        <Field>
+            <TextEdit Placeholder="Search for skate..." @bind-Text="_search"/>
+        </Field>
+        @if (_skates is not null)
+        {
+            <Table Striped>
+                <TableBody>
+                    @foreach (var skate in _skates.Where(s => (string.IsNullOrEmpty(_search) || s.Name.Contains(_search))))
+                    {
+                        <TableRow>
+                            <TableRowHeader>@skate.Name</TableRowHeader>
+                            <TableRowCell>@skate.Status.ToString()</TableRowCell>
+                            <TableRowCell>
+                                @if (skate.Status == SkateStatus.Available)
+                                {
+                                    <Buttons>
+                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)">
+                                            Check Out
+                                        </Button>
+                                        <Button Color="Color.Secondary" Disabled>Check In</Button>
+                                    </Buttons>
+                                }
+                                else if (skate.Status == SkateStatus.InUse)
+                                {
+                                    <Buttons>
+                                        <Button Color="Color.Secondary" Disabled>Check Out</Button>
+                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)">
+                                            Check In
+                                        </Button>
+                                    </Buttons>
+                                }
+                                else
+                                {
+                                    <Buttons>
+                                        <Button Color="Color.Secondary" Disabled>Check Out</Button>
+                                        <Button Color="Color.Secondary" Disabled>Check In</Button>
+                                    </Buttons>
+                                }
+                            </TableRowCell>
+                        </TableRow>
+                    }
+                </TableBody>
+            </Table>
+        }
+        else //_skates is null 
+        {
+            <p>Uh oh! Either something went wrong or there are no skates to display!</p>
+        }
+
     }
-    else //_skates is null 
-    {
-        <p>Uh oh! Either something went wrong or there are no skates to display!</p>
-    }
-}
 </LoadingIndicator>
 @code {
     private List<Skate>? _skates;

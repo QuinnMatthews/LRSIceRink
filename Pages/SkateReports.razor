@@ -1,0 +1,116 @@
+﻿@page "/reports"
+@attribute [Authorize(Roles = "GlobalAdmin, SkateAdmin, ReportViewer")]
+@using LRSIceRink.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@using System.Globalization
+@inject ApplicationDbContext Context
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Skate Reports</PageTitle>
+
+<h1>Skate Reports</h1>
+<p>Click on a skate to view more info</p>
+<LoadingIndicator @bind-Visible="@_busy">
+    @if (_hasLoaded)
+    {
+        <Field>
+            <TextEdit Placeholder="Search for skate..." @bind-Text="_search"/>
+        </Field>
+
+        @if(_skates is not null) {
+            <Table Striped Hoverable>
+                <TableBody>
+                    @foreach(var skate in _skates.Where(s => (string.IsNullOrEmpty(_search) || s.Name.Contains(_search)))) {
+                        <TableRow Clicked="async () => await ShowSkateAuditHistory(skate)">
+                            <TableRowHeader>@skate.Name</TableRowHeader>
+                            <TableRowCell>@skate.Status.ToString()</TableRowCell>
+                            <TableRowCell>@($"{(skate.MinutesUsed / 60):0.## hours}")</TableRowCell>
+                        </TableRow>
+                    }
+                </TableBody>
+            </Table>
+        } else //_skates is null
+        {
+            <p>Uh oh! Either something went wrong or there are no skates to display!</p>
+        }
+    }
+    @if (skateAuditHistory is not null)
+    {
+        <Modal @bind-Visible="_showSkateAuditModal" >
+            <ModalContent Centered Size="ModalSize.ExtraLarge" Scrollable>
+                <ModalHeader>
+                    <ModalTitle>Skate History</ModalTitle>
+                    <CloseButton/>
+                </ModalHeader>
+                <ModalBody>
+                    <Table Striped>
+                        <TableBody>
+                            @foreach (var auditlog in skateAuditHistory)
+                            {
+                                <TableRow>
+                                    <TableRowHeader>@auditlog.Timestamp.ToString("MM/dd/yyyy hh:mm tt")</TableRowHeader>
+                                    <TableRowCell>
+                                        @if (auditlog.User is not null)
+                                        {
+                                            <span>@auditlog.User.UserName</span>
+                                        }
+                                    </TableRowCell>
+                                    <TableRowCell>@auditlog.Action</TableRowCell>
+                                </TableRow>
+                            }
+                        </TableBody>
+                    </Table>
+                </ModalBody>
+                <ModalFooter>
+                    <Button Color="Color.Primary" Clicked="() => _showSkateAuditModal = false">Close</Button>
+                </ModalFooter>
+            </ModalContent>
+        </Modal>
+    }
+    </LoadingIndicator>
+    
+@code {
+    private bool _busy, _hasLoaded;
+    private List<Skate>? _skates;
+    private string? _search;
+    private List<Property>? _properties;
+    private double _maxUsageMinutes;
+    private double _warnUsageMinutes;
+    private bool _showSkateAuditModal;
+    private List<AuditLog> skateAuditHistory;
+    protected override async Task OnInitializedAsync()
+    {
+        _busy = true;
+        _hasLoaded = false;
+
+        if (Context is not null)
+        {
+            //Get all skates
+            _skates = await Context.Skates.OrderBy(s=>s.Name).ToListAsync();
+            //Get global properties
+            _properties = await Context.Properties.ToListAsync();
+            _maxUsageMinutes = Double.Parse(_properties.Find(p => p.Name == "MaxSkateUsageMinutes")?.Value ?? "0");
+            _warnUsageMinutes = Double.Parse(_properties.Find(p => p.Name == "WarnSkateUsageMinutes")?.Value ?? "0");
+        }
+
+        await base.OnInitializedAsync();
+        _busy = false;
+        _hasLoaded = true;
+    }
+
+    protected async Task ShowSkateAuditHistory(Skate skate)
+    {
+        _busy = true;
+        skateAuditHistory = await Context.AuditLogs
+            .Where(a => a.Skate == skate)
+            .Include(a => a.User)
+            .OrderByDescending(a=>a.Timestamp)
+            .Take(100)
+            .ToListAsync();
+        _showSkateAuditModal = true;
+        _busy = false;
+    }
+}

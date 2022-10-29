@@ -112,7 +112,6 @@
             Timestamp = DateTime.Now,
             Skate = skate,
             User = user,
-            Action = $"Changed skate status from {skate.Status} to {newStatus}"
         };
 
         if (newStatus == SkateStatus.InUse)
@@ -133,6 +132,7 @@
                         };
                         skate.SkateUsages.Add(usage);
                     }
+                    audit.Action = "Checked skate out";
                 }
                 else
                 {
@@ -162,6 +162,7 @@
             {
                 await MessageService.Info("Skate is almost at it's maximum usage. It can still be used but will need to be sharpened soon.", "Approaching max");
             }
+            audit.Action = $"Checked skate in (Total usage:{skate.MinutesUsed})";
         }
 
         Context.AuditLogs.Add(audit);

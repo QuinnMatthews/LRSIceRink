@@ -126,7 +126,7 @@
                 Timestamp = DateTime.Now,
                 Skate = skate,
                 User = user,
-                Action = $"Changed skate usage minutes from {skate.MinutesUsed} to {minutes}"
+                Action = $"Changed skate usage minutes from {(skate.MinutesUsed / 60):0.## hours} to {(minutes / 60):0.## hours}"
             };
         skate.MinutesUsed = minutes;
         Context.AuditLogs.Add(audit);

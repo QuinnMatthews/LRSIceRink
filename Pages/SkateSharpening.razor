@@ -86,25 +86,23 @@
 
     protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus)
     {
+        _busy = true;
         AuditLog audit = new AuditLog()
         {
             Timestamp = DateTime.Now,
             Skate = skate,
             User = user,
-            Action = $"Changed skate status from {skate.Status} to {newStatus}"
         };
         if (newStatus == SkateStatus.Available)
         {
-            AuditLog audit2 = new AuditLog()
-            {
-                Timestamp = DateTime.Now,
-                Skate = skate,
-                User = user,
-                Action = $"Reset skate usage minutes (Previously {skate.MinutesUsed} minutes)"
-            };
+            audit.Action = "Recieved skate from being sharpened";
             skate.MinutesUsed = 0;
+        } else if (newStatus == SkateStatus.BeingSharpened)
+        {
+            audit.Action = $"Sent skate to sharpened (Usage: {(skate.MinutesUsed / 60):0.## hours})";
         }
-        _busy = true;
+
+        Context.Add(audit);
         skate.Status = newStatus; 
         await Context.SaveChangesAsync();
         _busy = false;

@@ -137,7 +137,7 @@
     protected async Task AddUserRole(ApplicationUser user, ApplicationRole role)
     {
         _busy = true;
-        if (role == (await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync()) && !IsInRole(loggedInUser, role))
+        if (role == (await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync()) && c)
         {
             var sendEmailTask = EmailSender.SendEmailAsync(
                 "Quinn.matthews@lrs.com",
@@ -166,8 +166,10 @@
     protected async Task RemoveUserRole(ApplicationUser user, ApplicationRole role)
     {
         _busy = true;
-        if (role == await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync())
-        {
+        if(
+            role == await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync() 
+            && !IsInRole(loggedInUser, _roles.First(r => r.Name == "SupremeAdminOfTheUniverse"))
+        ){
             var sendEmailTask = EmailSender.SendEmailAsync(
                 "Quinn.matthews@lrs.com",
                 "Someone Tried to remove global admin permissions",

@@ -166,7 +166,7 @@
             {
                 await MessageService.Info("Skate is almost at it's maximum usage. It can still be used but will need to be sharpened soon.", "Approaching max");
             }
-            audit.Action = $"Checked skate in (Total usage:{skate.MinutesUsed})";
+            audit.Action = $"Checked skate in (Total usage: {(skate.MinutesUsed / 60):0.## hours})";
         }
 
         Context.AuditLogs.Add(audit);

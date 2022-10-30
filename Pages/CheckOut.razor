@@ -137,7 +137,8 @@
                 else
                 {
                     //If canceled, don't check out
-                    newStatus = oldStatus;
+                    _busy = false;
+                    return;
                 }
             }
             else

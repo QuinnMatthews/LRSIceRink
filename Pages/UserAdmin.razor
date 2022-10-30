@@ -26,8 +26,7 @@
         {
             <Table Striped>
                 <TableHeader>
-                    <TableHeaderCell>Username</TableHeaderCell>
-                    <TableHeaderCell>Email</TableHeaderCell>
+                    <TableHeaderCell>User</TableHeaderCell>
                     <TableHeaderCell ColumnSpan="3">Roles</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
@@ -35,7 +34,6 @@
                     {
                         <TableRow>
                             <TableRowHeader>@user.UserName</TableRowHeader>
-                            <TableRowCell>@user.Email</TableRowCell>
                             <TableRowCell>
                                 <Buttons>
                                     <Dropdown>
@@ -125,8 +123,7 @@
                 "Quinn.matthews@lrs.com",
                 "Someone Tried to delete a Global Admin account",
                 $"{loggedInUser.UserName} tried to delete a Global admin account");
-            await MessageService.Error("You can't delete a global admin. The authorities have been alerted. ", "Access Denied");
-
+            await MessageService.Error("How dare you try to delete me!", "Access Denied");
             await sendEmailTask;
         }
         else
@@ -140,15 +137,17 @@
     protected async Task AddUserRole(ApplicationUser user, ApplicationRole role)
     {
         _busy = true;
-        if (role == await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync())
+        if (role == (await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync()) && !IsInRole(loggedInUser, role))
         {
             var sendEmailTask = EmailSender.SendEmailAsync(
                 "Quinn.matthews@lrs.com",
                 "Someone Tried to elevate permissions",
                 $"{loggedInUser.UserName} tried to make someone a global admin");
-            await MessageService.Error("You can't add new global admins, the authorities have been alerted", "Access Denied");
+            await MessageService.Error("You can't add new global admins.", "Access Denied");
             await sendEmailTask;
-            await sendEmailTask;
+        } else if (role == await Context.Roles.Where(r => r.Name == "SupremeAdminOfTheUniverse").FirstAsync())
+        {
+            await MessageService.Error("There can only be one!", "Access Denied");
         }
         else
         {

@@ -51,7 +51,7 @@
                             @foreach (var auditlog in skateAuditHistory)
                             {
                                 <TableRow>
-                                    <TableRowHeader>@auditlog.Timestamp.ToString("MM/dd/yyyy hh:mm tt")</TableRowHeader>
+                                    <TableRowHeader>@auditlog.Timestamp.ToLocalTime().ToString("MM/dd/yyyy hh:mm tt")</TableRowHeader>
                                     <TableRowCell>
                                         @if (auditlog.User is not null)
                                         {

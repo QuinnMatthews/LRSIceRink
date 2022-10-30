@@ -74,7 +74,15 @@
         }
     }
 </LoadingIndicator>
-
+<h3>Roll Descriptions</h3>
+<ul>
+    <li>Global Admin - Access to all areas</li>
+    <li>User Admin - Access to add rolls to users (Except Global Admin)</li>
+    <li>Skate Admin - Access to skate Admin Page - Ability to override skate values, also has access to skate reports</li>
+    <li>Sharpening - Ability to mark skates as sent to be sharpened and receive skates from sharpening</li>
+    <li>Report Viewer - Access to Skate Status and history page</li>
+    <li>Rental Operator - Access check skates in and out</li>
+</ul>
 @code {
     private bool _busy, _hasLoaded;
     private List<ApplicationUser>? _users;
@@ -137,7 +145,7 @@
     protected async Task AddUserRole(ApplicationUser user, ApplicationRole role)
     {
         _busy = true;
-        if (role == (await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync()) && c)
+        if(role == (await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync()) && !IsInRole(loggedInUser, _roles.First(r => r.Name == "SupremeAdminOfTheUniverse")))
         {
             var sendEmailTask = EmailSender.SendEmailAsync(
                 "Quinn.matthews@lrs.com",
@@ -176,7 +184,14 @@
                 $"{loggedInUser.UserName} tried to remove a global admin's permissions");
             await MessageService.Error("You can't remove global admin, the authorities have been alerted", "Access Denied");
             await sendEmailTask;
-        }
+        } else if( role == await Context.Roles.Where(r => r.Name == "SupremeAdminOfTheUniverse").FirstAsync()){
+                var sendEmailTask = EmailSender.SendEmailAsync(
+                    "Quinn.matthews@lrs.com",
+                    "Someone Tried to remove global admin permissions",
+                    $"{loggedInUser.UserName} tried to remove a global admin's permissions");
+                await MessageService.Error("My power can never be removed Mwahaha", "Access Denied");
+                await sendEmailTask;
+            }
         else
         {
             var userRole = new ApplicationUserRole()

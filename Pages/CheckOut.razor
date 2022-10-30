@@ -132,13 +132,17 @@
                         };
                         skate.SkateUsages.Add(usage);
                     }
-                    audit.Action = "Checked skate out";
+                    audit.Action = $"Checked skate out over max usage (Usage: {(skate.MinutesUsed / 60):0.## hours})";
                 }
                 else
                 {
                     //If canceled, don't check out
                     newStatus = oldStatus;
                 }
+            }
+            else
+            {
+                audit.Action = "Checked skate out";
             }
         } else if (newStatus == SkateStatus.Available && oldStatus == SkateStatus.InUse)
         {

@@ -29,44 +29,29 @@
                     <TableHeaderCell>First Name</TableHeaderCell>
                     <TableHeaderCell>Last Name</TableHeaderCell>
                     <TableHeaderCell>Email</TableHeaderCell>
-                    <TableHeaderCell ColumnSpan="3">Roles</TableHeaderCell>
+                    <TableHeaderCell>Roles</TableHeaderCell>
+                    <TableHeaderCell></TableHeaderCell>
                 </TableHeader>
                 <TableBody>
-                    @foreach (var user in _users.Where(s => (string.IsNullOrEmpty(_search) || s.UserName.Contains(_search) || s.Email.Contains(_search))))
+                    @foreach(var user in _users.Where(s => (string.IsNullOrEmpty(_search) 
+                                                            || (s.FirstName?.Contains(_search) ?? false) 
+                                                            || (s.LastName?.Contains(_search) ?? false) 
+                                                            || s.Email.Contains(_search)))) 
                     {
                         <TableRow>
-                            <TableRowHeader>@user.FirstName</TableRowHeader>
-                            <TableRowHeader>@user.LastName</TableRowHeader>
-                            <TableRowHeader>@user.UserName</TableRowHeader>
+                            <TableRowCell>@user.FirstName</TableRowCell>
+                            <TableRowCell>@user.LastName</TableRowCell>
+                            <TableRowCell>@user.UserName</TableRowCell>
                             <TableRowCell>
-                                <Buttons>
-                                    <Dropdown>
-                                        <DropdownToggle Color="Color.Primary">Add Role</DropdownToggle>
-                                        <DropdownMenu>
-                                            @foreach (var role in _roles)
-                                            {
-                                                if (!IsInRole(user, role))
-                                                {
-                                                    <DropdownItem Clicked="async () => await AddUserRole(user, role)">@role.Name</DropdownItem>
-                                                }
-                                            }
-                                        </DropdownMenu>
-                                    </Dropdown>
-                                    <Dropdown>
-                                        <DropdownToggle Color="Color.Secondary">Remove Role</DropdownToggle>
-                                        <DropdownMenu>
-                                            @foreach (var role in _roles)
-                                            {
-                                                if (IsInRole(user, role))
-                                                {
-                                                    <DropdownItem Clicked="async () => await RemoveUserRole(user, role)">@role.Name</DropdownItem>
-                                                }
-                                            }
-                                        </DropdownMenu>
-                                    </Dropdown>
-                                </Buttons>
+                                @foreach (var role in _roles)
+                                {
+                                    if (IsInRole(user, role))
+                                    {
+                                        <Badge Color = "Color.Info" Pill>@role.Name</Badge>
+                                    }
+                                }
                             </TableRowCell>
-                            <TableRowCell><Button Color="Color.Danger" Clicked="async () => await DeleteUser(user)">Delete User</Button></TableRowCell>
+                            <TableRowCell><Button Color="Color.Primary" Clicked="() => { _showEditUserModal = true; selectedUser = user;}">Edit User</Button></TableRowCell>
                         </TableRow>
                     }
                 </TableBody>
@@ -75,6 +60,58 @@
         else
         {
             <p>Uh oh! Either something went wrong or there are no users</p>
+        }
+
+        //Edit User Modal
+        @if (selectedUser is not null)
+        {
+            <Modal @bind-Visible="@_showEditUserModal" Closed="SaveChanges">
+                <ModalContent Centered>
+                    <ModalHeader>
+                        <ModalTitle>Edit User</ModalTitle>
+                        <CloseButton/>
+                    </ModalHeader>
+                    <ModalBody>
+                        <Fields>
+                            <Field>
+                                <FieldLabel>First Name</FieldLabel>
+                                <TextEdit  @bind-Text="@selectedUser.FirstName" Placeholder="Enter first name..."/>
+                            </Field>
+                            <Field>
+                                <FieldLabel>Last Name</FieldLabel>
+                                <TextEdit @bind-Text="@selectedUser.LastName"  Placeholder="Enter last name..." />
+                            </Field>
+                        </Fields>
+                        <Field>
+                            <FieldLabel>Email</FieldLabel>
+                            <TextEdit @bind-Text="@selectedUser.Email" Placeholder="Enter email..."/>
+                        </Field>
+                        <h4>Roles</h4>
+                        @foreach (var role in _roles)
+                        {
+                            if (IsInRole(selectedUser, role))
+                            {
+                                <Badge Color="Color.Info" CloseClicked="async () => await RemoveUserRole(selectedUser, role)" Pill>@role.Name</Badge>
+                            }
+                        }
+                        <Dropdown>
+                            <DropdownToggle Color="Color.Info">Add Role</DropdownToggle>
+                            <DropdownMenu>
+                                @foreach (var role in _roles)
+                                {
+                                    if(!IsInRole(selectedUser, role)) {
+                                        <DropdownItem Clicked="async () => await AddUserRole(selectedUser, role)">@role.Name</DropdownItem>
+                                    }
+                                }
+                            </DropdownMenu>
+                        </Dropdown>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button Color="Color.Danger" Clicked="async () => await DeleteUser(selectedUser)">Delete User</Button>
+                        <Button Color="Color.Primary" Clicked="() => _showEditUserModal = false">Close</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         }
     }
 </LoadingIndicator>
@@ -95,6 +132,8 @@
     private ApplicationUser loggedInUser;
     private List<ApplicationRole> _roles;
     private List<ApplicationUserRole> _userRoles;
+    private ApplicationUser selectedUser;
+    private bool _showEditUserModal;
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,6 +182,7 @@
             _users.Remove(user);
             Context.Remove(user);
             await Context.SaveChangesAsync();
+            _showEditUserModal = false;
         }
         _busy = false;
     }
@@ -214,6 +254,19 @@
 
         _busy = false;
     }
+
+    protected async Task ShowUpdateUserModel(ApplicationUser user)
+    {
+
+        await Context.SaveChangesAsync();
+    }
+
+
+    protected async Task SaveChanges()
+    {
+        await Context.SaveChangesAsync();
+    }
+
     protected bool IsInRole(ApplicationUser user, ApplicationRole role)
     {
         return (_userRoles.FirstOrDefault(ur => ur.Role == role && ur.User == user) is not null);

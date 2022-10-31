@@ -26,13 +26,17 @@
         {
             <Table Striped>
                 <TableHeader>
-                    <TableHeaderCell>User</TableHeaderCell>
+                    <TableHeaderCell>First Name</TableHeaderCell>
+                    <TableHeaderCell>Last Name</TableHeaderCell>
+                    <TableHeaderCell>Email</TableHeaderCell>
                     <TableHeaderCell ColumnSpan="3">Roles</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
                     @foreach (var user in _users.Where(s => (string.IsNullOrEmpty(_search) || s.UserName.Contains(_search) || s.Email.Contains(_search))))
                     {
                         <TableRow>
+                            <TableRowHeader>@user.FirstName</TableRowHeader>
+                            <TableRowHeader>@user.LastName</TableRowHeader>
                             <TableRowHeader>@user.UserName</TableRowHeader>
                             <TableRowCell>
                                 <Buttons>
@@ -136,6 +140,7 @@
         }
         else
         {
+            _users.Remove(user);
             Context.Remove(user);
             await Context.SaveChangesAsync();
         }

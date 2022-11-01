@@ -33,7 +33,22 @@
                                 }
                                 @skate.Name
                             </TableRowHeader>
-                            <TableRowCell>@skate.Status.ToString()</TableRowCell>
+                            <TableRowCell>
+                                @switch (skate.Status)
+                                {
+                                    case SkateStatus.InUse:
+                                        <Badge Color="Color.Info" Pill >Checked Out</Badge>
+                                        break;
+
+                                    case SkateStatus.Available:
+                                        <Badge Color="Color.Success" Pill>Available</Badge>
+                                        break;
+
+                                    case SkateStatus.BeingSharpened:
+                                        <Badge Color="Color.Secondary" Pill>Being Sharpened</Badge>
+                                        break;
+                                }
+                            </TableRowCell>
                             <TableRowCell>
                                 <Row>
                                     <Column>

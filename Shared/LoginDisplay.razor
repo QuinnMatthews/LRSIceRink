@@ -1,6 +1,11 @@
-﻿<AuthorizeView>
+﻿@using Microsoft.AspNetCore.Identity
+@using LRSIceRink.Data
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthNStateProvider
+
+<AuthorizeView>
     <Authorized>
-        <a href="Identity/Account/Manage">Hello, @context.User.Identity?.Name!</a>
+        <a href="Identity/Account/Manage">@greeting</a>
         <form method="post" action="Identity/Account/LogOut">
             <button type="submit" class="nav-link btn btn-link">Log out</button>
         </form>
@@ -10,3 +15,14 @@
         <a href="Identity/Account/Login">Log in</a>
     </NotAuthorized>
 </AuthorizeView>
+
+@code {
+    protected string greeting = "Welcome!";
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthNStateProvider.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+        greeting = $"Welcome {user.FirstName} {user.LastName}!";
+        await base.OnInitializedAsync();
+    }
+}

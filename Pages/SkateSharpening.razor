@@ -43,6 +43,7 @@
                             <TableRowCell>
                                 @if(skate.Status == SkateStatus.Available) {
                                     <Buttons>
+
                                         <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.BeingSharpened)">
                                             Send to be sharpened
                                         </Button>

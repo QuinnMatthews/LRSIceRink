@@ -51,7 +51,8 @@
                                     }
                                 }
                             </TableRowCell>
-                            <TableRowCell><Button Color="Color.Primary" Clicked="() => { _showEditUserModal = true; selectedUser = user;}">Edit User</Button></TableRowCell>
+                            <TableRowCell><Button Color="Color.Primary" Clicked="() => ShowUpdateUserModel(user)">Edit User</Button></TableRowCell>
+                            <TableRowCell><Button Color="Color.Secondary" Clicked="() => ShowUserAuditHistory(user)">View Audit Log</Button></TableRowCell>
                         </TableRow>
                     }
                 </TableBody>
@@ -86,7 +87,9 @@
                             <FieldLabel>Email</FieldLabel>
                             <TextEdit @bind-Text="@selectedUser.Email" Placeholder="Enter email..."/>
                         </Field>
-                        <h4>Roles</h4>
+                        <Field>
+                            <FieldLabel>Roles</FieldLabel>
+                            <FieldBody>
                         @foreach (var role in _roles)
                         {
                             if (IsInRole(selectedUser, role))
@@ -94,21 +97,63 @@
                                 <Badge Color="Color.Info" CloseClicked="async () => await RemoveUserRole(selectedUser, role)" Pill>@role.Name</Badge>
                             }
                         }
-                        <Dropdown>
-                            <DropdownToggle Color="Color.Info">Add Role</DropdownToggle>
-                            <DropdownMenu>
-                                @foreach (var role in _roles)
-                                {
-                                    if(!IsInRole(selectedUser, role)) {
-                                        <DropdownItem Clicked="async () => await AddUserRole(selectedUser, role)">@role.Name</DropdownItem>
+                            </FieldBody>
+                        </Field>
+
+                            <Dropdown>
+                                <DropdownToggle Color="Color.Info">Add Role</DropdownToggle>
+                                <DropdownMenu>
+                                    @foreach (var role in _roles)
+                                    {
+                                        if(!IsInRole(selectedUser, role)) {
+                                            <DropdownItem Clicked="async () => await AddUserRole(selectedUser, role)">@role.Name</DropdownItem>
+                                        }
                                     }
+                                </DropdownMenu>
+                            </Dropdown>
+                    </ModalBody>
+                    <ModalFooter Flex="Flex.JustifyContent.Between">
+                            <Button Color="Color.Danger" Clicked="async () => await DeleteUser(selectedUser)">Delete User</Button>
+                            <Button Color="Color.Primary" Clicked="() => _showEditUserModal = false">Close</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+        }
+        //User Audit History Modal
+        @if (_userAuditLogs is not null)
+        {
+            <Modal @bind-Visible="_showUserAuditModal">
+                <ModalContent Centered Size="ModalSize.ExtraLarge" Scrollable>
+                    <ModalHeader>
+                        <ModalTitle>Skate History</ModalTitle>
+                        <CloseButton/>
+                    </ModalHeader>
+                    <ModalBody>
+                        <Table Striped>
+                            <TableHeader>
+                                <TableHeaderCell>Timestamp (UTC)</TableHeaderCell>
+                                <TableHeaderCell>Skate</TableHeaderCell>
+                                <TableHeaderCell>Action</TableHeaderCell>
+                            </TableHeader>
+                            <TableBody>
+                                @foreach (var auditlog in _userAuditLogs)
+                                {
+                                    <TableRow>
+                                        <TableRowHeader>@auditlog.Timestamp.ToLocalTime().ToString("MM/dd/yyyy hh:mm tt")</TableRowHeader>
+                                        <TableRowCell>
+                                            @if (auditlog.Skate is not null)
+                                            {
+                                                <span>@auditlog.Skate.Name</span>
+                                            }
+                                        </TableRowCell>
+                                        <TableRowCell>@auditlog.Action</TableRowCell>
+                                    </TableRow>
                                 }
-                            </DropdownMenu>
-                        </Dropdown>
+                            </TableBody>
+                        </Table>
                     </ModalBody>
                     <ModalFooter>
-                        <Button Color="Color.Danger" Clicked="async () => await DeleteUser(selectedUser)">Delete User</Button>
-                        <Button Color="Color.Primary" Clicked="() => _showEditUserModal = false">Close</Button>
+                        <Button Color="Color.Primary" Clicked="() => _showUserAuditModal = false">Close</Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
@@ -133,7 +178,8 @@
     private List<ApplicationRole> _roles;
     private List<ApplicationUserRole> _userRoles;
     private ApplicationUser selectedUser;
-    private bool _showEditUserModal;
+    private bool _showEditUserModal, _showUserAuditModal;
+    private List<AuditLog> _userAuditLogs;
 
     protected override async Task OnInitializedAsync()
     {
@@ -166,40 +212,43 @@
     protected async Task DeleteUser(ApplicationUser user)
     {
         _busy = true;
+        AuditLog audit = new AuditLog() {
+            Timestamp = DateTime.Now,
+            User = loggedInUser,
+        };
         var superAdminRole = await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync();
         var superAdminUserRole = await Context.UserRoles.FirstOrDefaultAsync(ur => ur.Role == superAdminRole && ur.User == user);
         if (superAdminUserRole is not null) //User is superadmin
         {
-            var sendEmailTask = EmailSender.SendEmailAsync(
-                "Quinn.matthews@lrs.com",
-                "Someone Tried to delete a Global Admin account",
-                $"{loggedInUser.UserName} tried to delete a Global admin account");
+            audit.Action = $"Tried to delete {user.FirstName} {user.LastName}. Access was denied.";
             await MessageService.Error("How dare you try to delete me!", "Access Denied");
-            await sendEmailTask;
         }
         else
         {
+            audit.Action = $"Deleted {user.FirstName} {user.LastName}.";
             _users.Remove(user);
             Context.Remove(user);
-            await Context.SaveChangesAsync();
             _showEditUserModal = false;
         }
+        Context.AuditLogs.Add(audit);
+        await Context.SaveChangesAsync();
         _busy = false;
     }
 
     protected async Task AddUserRole(ApplicationUser user, ApplicationRole role)
     {
         _busy = true;
+        AuditLog audit = new AuditLog() {
+            Timestamp = DateTime.Now,
+            User = loggedInUser,
+        };
         if(role == (await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync()) && !IsInRole(loggedInUser, _roles.First(r => r.Name == "SupremeAdminOfTheUniverse")))
         {
-            var sendEmailTask = EmailSender.SendEmailAsync(
-                "Quinn.matthews@lrs.com",
-                "Someone Tried to elevate permissions",
-                $"{loggedInUser.UserName} tried to make someone a global admin");
+            audit.Action = $"Tried to add {user.FirstName} {user.LastName} to {role.Name}. Access was denied";
             await MessageService.Error("You can't add new global admins.", "Access Denied");
-            await sendEmailTask;
         } else if (role == await Context.Roles.Where(r => r.Name == "SupremeAdminOfTheUniverse").FirstAsync())
         {
+            audit.Action = $"Tried to add {user.FirstName} {user.LastName} to {role.Name}. Access was denied";
             await MessageService.Error("There can only be one!", "Access Denied");
         }
         else
@@ -209,36 +258,34 @@
                 Role = role,
                 User = user
             };
+            audit.Action = $"Added {user.FirstName} {user.LastName} to {role.Name}.";
             _userRoles.Add(userRole);
             Context.Add(userRole);
-            await Context.SaveChangesAsync();
         }
-
+        Context.AuditLogs.Add(audit);
+        await Context.SaveChangesAsync();
         _busy = false;
     }
     protected async Task RemoveUserRole(ApplicationUser user, ApplicationRole role)
     {
         _busy = true;
+        AuditLog audit = new AuditLog() {
+            Timestamp = DateTime.Now,
+            User = loggedInUser,
+        };
         if(
             role == await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync() 
             && !IsInRole(loggedInUser, _roles.First(r => r.Name == "SupremeAdminOfTheUniverse"))
         ){
-            var sendEmailTask = EmailSender.SendEmailAsync(
-                "Quinn.matthews@lrs.com",
-                "Someone Tried to remove global admin permissions",
-                $"{loggedInUser.UserName} tried to remove a global admin's permissions");
+            audit.Action = $"Tried to remove {user.FirstName} {user.LastName} from {role.Name}. Access was denied";
             await MessageService.Error("You can't remove global admin, the authorities have been alerted", "Access Denied");
-            await sendEmailTask;
         } else if( role == await Context.Roles.Where(r => r.Name == "SupremeAdminOfTheUniverse").FirstAsync()){
-                var sendEmailTask = EmailSender.SendEmailAsync(
-                    "Quinn.matthews@lrs.com",
-                    "Someone Tried to remove global admin permissions",
-                    $"{loggedInUser.UserName} tried to remove a global admin's permissions");
+                audit.Action = $"Tried to remove {user.FirstName} {user.LastName} from {role.Name}. Access was denied";
                 await MessageService.Error("My power can never be removed Mwahaha", "Access Denied");
-                await sendEmailTask;
             }
         else
         {
+            audit.Action = $"Removed {user.FirstName} {user.LastName} from {role.Name}.";
             var userRole = new ApplicationUserRole()
             {
                 Role = role,
@@ -249,15 +296,22 @@
             var _role = _userRoles.Find(ur => ur.Role == role && ur.User == user);
             Context.Remove(_role ?? userRole);
             _userRoles.Remove(_role);
-            await Context.SaveChangesAsync();
         }
-
+        Context.AuditLogs.Add(audit);
+        await Context.SaveChangesAsync();
         _busy = false;
     }
 
     protected async Task ShowUpdateUserModel(ApplicationUser user)
     {
-
+        AuditLog audit = new AuditLog() {
+            Timestamp = DateTime.Now,
+            User = loggedInUser,
+            Action = $"Opened edit user screen for: {user.FirstName} {user.LastName}"
+        };
+        Context.AuditLogs.Add(audit);
+        selectedUser = user;
+        _showEditUserModal = true;
         await Context.SaveChangesAsync();
     }
 
@@ -271,5 +325,16 @@
     {
         return (_userRoles.FirstOrDefault(ur => ur.Role == role && ur.User == user) is not null);
     }
-
+    protected async Task ShowUserAuditHistory(ApplicationUser user)
+    {
+        _busy = true;
+        _userAuditLogs = await Context.AuditLogs
+            .Where(a => a.User == user)
+            .Include(a => a.Skate)
+            .OrderByDescending(a=>a.Timestamp)
+            .Take(100)
+            .ToListAsync();
+        _showUserAuditModal = true;
+        _busy = false;
+    }
 }

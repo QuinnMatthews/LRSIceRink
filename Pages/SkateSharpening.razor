@@ -70,8 +70,8 @@
 
         if (Context is not null)
         {
-            //Get all skates
-            _skates = await Context.Skates.OrderBy(s=>s.MinutesUsed).ToListAsync();
+            //Get all non-archived skates
+            _skates = await Context.Skates.Where(s=> !s.IsArchived).OrderBy(s=>s.MinutesUsed).ToListAsync();
             //Get global properties
             _properties = await Context.Properties.ToListAsync();
         }

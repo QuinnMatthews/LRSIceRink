@@ -17,48 +17,57 @@
         <Field>
             <TextEdit Placeholder="Search for skate..." @bind-Text="_search" />
         </Field>
-
         @if(_skates is not null) {
+            <Button Color="Color.Success" Size="Size.Small" Clicked="() => _addSkateModalVisible=true">Add Skate</Button>
+            <br/>
+            <br/>
             <Table Striped>
                 <TableBody>
-                    @foreach(var skate in _skates.Where(s => (string.IsNullOrEmpty(_search) || s.Name.Contains(_search)))) {
+                    @foreach (var skate in _skates.Where(s => (string.IsNullOrEmpty(_search) || s.Name.Contains(_search))))
+                    {
                         <TableRow>
-                            <TableRowHeader>@skate.Name</TableRowHeader>
+                            <TableRowHeader>
+                                @if (skate.IsArchived)
+                                {
+                                    <Badge Color="Color.Warning">Archived</Badge>
+                                }
+                                @skate.Name
+                            </TableRowHeader>
                             <TableRowCell>@skate.Status.ToString()</TableRowCell>
                             <TableRowCell>
                                 <Row>
-                                <Column>
-                                    <NumericPicker Decimals="0" TValue="double" Value="skate.MinutesUsed" Min="0" ValueChanged="min => UpdateSkateMinutes(skate, min)"/>
-                                </Column>
-                                <Column>
-                                    <span>minutes</span>
-                                </Column>
+                                    <Column>
+                                        <NumericPicker Decimals="0" TValue="double" Value="skate.MinutesUsed" Min="0" ValueChanged="min => UpdateSkateMinutes(skate, min)"/>
+                                    </Column>
+                                    <Column>
+                                        <span>minutes</span>
+                                    </Column>
                                 </Row>
                             </TableRowCell>
                             <TableRowCell>
-                                <Buttons>
-                                    @if (skate.Status != SkateStatus.Available) {
-                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)"> Available</Button>
-                                    } else {
-                                        <Button Color="Color.Secondary" Disabled> Available</Button>
-                                    }
-                                    @if(skate.Status != SkateStatus.InUse) {
-                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)"> In Use</Button>
-                                    } else {
-                                        <Button Color="Color.Secondary" Disabled> In Use</Button>
-                                    }
-                                    @if(skate.Status != SkateStatus.BeingSharpened) {
-                                        <Button Color="Color.Primary" Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.BeingSharpened)"> Being Sharpened</Button>
-                                    } else {
-                                        <Button Color="Color.Secondary" Disabled> Being Sharpened</Button>
-                                    }
-                                </Buttons>
+                                <Dropdown>
+                                    <DropdownToggle Color="Color.Primary">Edit Skate</DropdownToggle>
+                                    <DropdownMenu>
+                                        <DropdownHeader>Set Status</DropdownHeader>
+                                            <DropdownItem Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.Available)">Available</DropdownItem>
+                                            <DropdownItem Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.InUse)">In Use</DropdownItem>
+                                            <DropdownItem Clicked="async () => await UpdateSkateStatus(skate, SkateStatus.BeingSharpened)">Being Sharpened</DropdownItem>
+                                        <DropdownDivider />
+                                        @if (skate.IsArchived)
+                                        {
+                                            <DropdownItem Clicked="async () => await UnarchiveSkate(skate)">Remove from archive</DropdownItem>
+                                        }
+                                        else
+                                        {
+                                            <DropdownItem Clicked="async () => await ArchiveSkate(skate)">Archive</DropdownItem>
+                                        }
+                                    </DropdownMenu>
+                                </Dropdown>
                             </TableRowCell>
                         </TableRow>
                     }
                 </TableBody>
             </Table>
-            <Button Color="Color.Success" Size="Size.Small" Clicked="() => _addSkateModalVisible=true">Add Skate</Button>
             <Modal @bind-Visible="@_addSkateModalVisible">
                 <ModalContent Centered>
                     <ModalHeader>
@@ -93,7 +102,7 @@
         _hasLoaded = false;
         if(Context is not null) {
             //Get all skates
-            _skates = await Context.Skates.OrderBy(s => s.Name).ToListAsync();
+            _skates = await Context.Skates.OrderBy(s=>s.IsArchived).ThenBy(s => s.Name).ToListAsync();
             //Get global properties
             _properties = await Context.Properties.ToListAsync();
         }
@@ -153,6 +162,35 @@
         await Context.SaveChangesAsync();
         _newSkateName = "";
         _addSkateModalVisible = false;
+        _busy = false;
+    }
+
+    protected async Task ArchiveSkate(Skate skate)
+    {
+        _busy = true;
+        AuditLog audit = new AuditLog() {
+            Timestamp = DateTime.Now,
+            Skate = skate,
+            User = user,
+            Action = $"Archived Skate"
+        };
+        skate.IsArchived = true;
+        Context.AuditLogs.Add(audit);
+        await Context.SaveChangesAsync();
+        _busy = false;
+    }
+    protected async Task UnarchiveSkate(Skate skate)
+    {
+        _busy = true;
+        AuditLog audit = new AuditLog() {
+                Timestamp = DateTime.Now,
+                Skate = skate,
+                User = user,
+                Action = $"Removed skate from archive"
+            };
+        skate.IsArchived = false;
+        Context.AuditLogs.Add(audit);
+        await Context.SaveChangesAsync();
         _busy = false;
     }
 }

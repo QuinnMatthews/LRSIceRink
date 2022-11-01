@@ -11,7 +11,10 @@
 <PageTitle>Skate Administration</PageTitle>
 
 <h1>Skate Administration</h1>
-<p>Here you can manually modify any of the skate properties</p>
+<p>Here you can manually modify any of the skate properties 
+    (Warning: Modifying properties here is entirely manual so if, for example, 
+    you set a skate to "In Use" on this page, and then check it back in on the main page, 
+    no hours will be added)</p>
 <LoadingIndicator @bind-Visible="@_busy">
     @if(_hasLoaded) {
         <Field>

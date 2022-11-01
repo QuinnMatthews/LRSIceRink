@@ -147,6 +147,10 @@
                         };
                         skate.SkateUsages.Add(usage);
                     }
+                    else
+                    {
+                        usage.TimeOut = DateTime.Now;
+                    }
                     audit.Action = $"Checked skate out over max usage (Usage: {(skate.MinutesUsed / 60):0.## hours})";
                 }
                 else

@@ -15,7 +15,7 @@
 <LoadingIndicator @bind-Visible="@_busy">
     @if(_hasLoaded) {
         <Field>
-            <TextEdit Placeholder="Search for skate..." @bind-Text="_search" />
+            <TextEdit Placeholder="Search for skate..." @bind-Text="_search" Immediate="true" />
         </Field>
         @if(_skates is not null) {
             <Button Color="Color.Success" Size="Size.Small" Clicked="() => _addSkateModalVisible=true">Add Skate</Button>

@@ -20,7 +20,7 @@
     @if (_hasLoaded)
     {
         <Field>
-            <TextEdit Placeholder="Search for user..." @bind-Text="_search"/>
+            <TextEdit Placeholder="Search for user..." @bind-Text="_search" Immediate="true"/>
         </Field>
         @if (_users is not null)
         {

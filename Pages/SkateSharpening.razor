@@ -3,7 +3,8 @@
 @using LRSIceRink.Data
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext Context
+@implements IDisposable
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -79,10 +80,12 @@
     private string? _search;
     private List<Property>? _properties;
     private ApplicationUser user;
+    private ApplicationDbContext? Context;
     protected override async Task OnInitializedAsync()
     {
         _busy = true;
         _hasLoaded = false;
+        Context = await DbFactory.CreateDbContextAsync();
 
         if (Context is not null)
         {
@@ -99,7 +102,10 @@
         _busy = false;
         _hasLoaded = true;
     }
-
+    public void Dispose()
+    {
+        Context?.Dispose();
+    }
     protected async Task UpdateSkateStatus(Skate skate, SkateStatus newStatus)
     {
         _busy = true;

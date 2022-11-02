@@ -5,7 +5,8 @@
 @using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
 @using System.Globalization
-@inject ApplicationDbContext Context
+@implements IDisposable
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -96,10 +97,13 @@
     private double _warnUsageMinutes;
     private bool _showSkateAuditModal;
     private List<AuditLog> skateAuditHistory;
+    private ApplicationDbContext? Context;
+
     protected override async Task OnInitializedAsync()
     {
         _busy = true;
         _hasLoaded = false;
+        Context = await DbFactory.CreateDbContextAsync();
 
         if (Context is not null)
         {
@@ -114,6 +118,10 @@
         await base.OnInitializedAsync();
         _busy = false;
         _hasLoaded = true;
+    }
+    public void Dispose()
+    {
+        Context?.Dispose();
     }
 
     protected async Task ShowSkateAuditHistory(Skate skate)

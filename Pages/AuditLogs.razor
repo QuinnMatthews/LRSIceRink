@@ -5,7 +5,8 @@
 @using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
 @using System.Globalization
-@inject ApplicationDbContext Context
+@implements IDisposable
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -59,25 +60,35 @@
     private List<Property>? _properties;
     private List<ApplicationUser> _users;
     private List<AuditLog> _auditLogs;
+    private ApplicationDbContext? Context;
     protected override async Task OnInitializedAsync()
     {
         _busy = true;
         _hasLoaded = false;
-
-            if (Context is not null)
+        Context = await DbFactory.CreateDbContextAsync();
+        if (Context is not null)
             {
 
                 //Get all non-archived skates
-                _skates = await Context.Skates.Where(s => !s.IsArchived).OrderBy(s => s.Name).ToListAsync();
+                _skates = await Context.Skates.OrderByDescending(s=>s.IsArchived).ThenBy(s => s.Name).ToListAsync();
                 //Get global properties
                 _properties = await Context.Properties.ToListAsync();
                 //Get All Users
                 _users = await Context.Users.ToListAsync();
                 //Get Top 1000 Audit Logs
-                _auditLogs = await Context.AuditLogs.OrderByDescending(a => a.Timestamp).Take(1000).ToListAsync();
+                _auditLogs = await Context.AuditLogs
+                    .Include(a=>a.Skate)
+                    .Include(a=>a.User)
+                    .OrderByDescending(a => a.Timestamp)
+                    .Take(1000)
+                    .ToListAsync();
             }
         await base.OnInitializedAsync();
         _busy = false;
         _hasLoaded = true;
+    }
+    public void Dispose()
+    {
+        Context?.Dispose();
     }
 }

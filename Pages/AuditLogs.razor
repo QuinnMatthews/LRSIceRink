@@ -1,0 +1,83 @@
+﻿@page "/audit"
+@attribute [Authorize(Roles = "GlobalAdmin, ReportViewer")]
+@using LRSIceRink.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@using System.Globalization
+@inject ApplicationDbContext Context
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Audit Logs</PageTitle>
+
+<h1>Audit Logs</h1>
+<p>Top 1,000 records shown</p>
+<LoadingIndicator @bind-Visible="@_busy">
+    @if (_hasLoaded)
+    {
+        @if(_auditLogs is not null) {
+            <Table Striped>
+                <TableHeader>
+                    <TableHeaderCell>Timestamp (UTC)</TableHeaderCell>
+                    <TableHeaderCell>User</TableHeaderCell>
+                    <TableHeaderCell>Skate</TableHeaderCell>
+                    <TableHeaderCell>Action</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                    @foreach (var log in _auditLogs)
+                    {
+                        <TableRow>
+                            <TableRowHeader>@log.Timestamp</TableRowHeader>
+                            <TableRowCell>
+                                @if(log.User is not null) {
+                                    @($"{log.User.FirstName} {log.User.LastName}")
+                                }
+                            </TableRowCell>
+                            <TableRowCell>
+                                @if(log.Skate is not null) {
+                                    @log.Skate.Name
+                                }
+                            </TableRowCell>
+                            <TableRowCell>
+                                @log.Action
+                            </TableRowCell>
+                        </TableRow>
+                    }
+                </TableBody>
+            </Table>
+        } else
+        {
+            <p>Uh oh! Something went wrong</p>
+        }
+    }
+    </LoadingIndicator>
+    
+@code {
+    private bool _busy, _hasLoaded;
+    private List<Skate>? _skates;
+    private List<Property>? _properties;
+    private List<ApplicationUser> _users;
+    private List<AuditLog> _auditLogs;
+    protected override async Task OnInitializedAsync()
+    {
+        _busy = true;
+        _hasLoaded = false;
+
+            if (Context is not null)
+            {
+
+                //Get all non-archived skates
+                _skates = await Context.Skates.Where(s => !s.IsArchived).OrderBy(s => s.Name).ToListAsync();
+                //Get global properties
+                _properties = await Context.Properties.ToListAsync();
+                //Get All Users
+                _users = await Context.Users.ToListAsync();
+                //Get Top 1000 Audit Logs
+                _auditLogs = await Context.AuditLogs.OrderByDescending(a => a.Timestamp).Take(1000).ToListAsync();
+            }
+        await base.OnInitializedAsync();
+        _busy = false;
+        _hasLoaded = true;
+    }
+}

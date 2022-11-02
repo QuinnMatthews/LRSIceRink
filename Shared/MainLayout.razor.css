@@ -31,6 +31,18 @@ main {
         text-overflow: ellipsis;
     }
 
+.bottom-row {
+    background-color: rgba(200, 200, 255, 0.1);
+    color: #d7d7d7;
+    height: 4.5rem;
+    display: flex;
+    align-items: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    font-size: 0.95rem
+}
+
 @media (max-width: 640.98px) {
     .top-row:not(.auth) {
         display: none;
@@ -42,6 +54,9 @@ main {
 
     .top-row a, .top-row .btn-link {
         margin-left: 0;
+    }
+    .bottom-row {
+        display: none;
     }
 }
 

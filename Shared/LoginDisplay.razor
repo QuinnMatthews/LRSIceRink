@@ -22,7 +22,7 @@
     {
         var authState = await AuthNStateProvider.GetAuthenticationStateAsync();
         var user = await UserManager.GetUserAsync(authState.User);
-        greeting = $"Welcome {user.FirstName} {user.LastName}!";
+        greeting = $"Welcome {user?.FirstName} {user?.LastName}!";
         await base.OnInitializedAsync();
     }
 }

@@ -4,7 +4,7 @@
         InUse,
         BeingSharpened
     };
-    public class Skate
+    public class Skate: IComparable
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
@@ -16,6 +16,12 @@
         public void addMinutesUsed(double minutes)
         {
             MinutesUsed += minutes;
+        }
+
+        public int CompareTo(object incomingobject) {
+            Skate incomingskate = incomingobject as Skate;
+
+            return this.Id.CompareTo(incomingskate.Id);
         }
     }
 }

@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
 @using System.Globalization
+@using Blazorise.Extensions
 @implements IDisposable
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject UserManager<ApplicationUser> UserManager
@@ -17,6 +18,52 @@
 <LoadingIndicator @bind-Visible="@_busy">
     @if (_hasLoaded)
     {
+        <Accordion>
+            <Collapse Visible="@FilterVisible">
+                <CollapseHeader><Heading Size="HeadingSize.Is5">
+                    <Button Clicked="@(() => FilterVisible = !FilterVisible)" Block Outline Color="Color.Primary">Filters</Button>
+                </Heading></CollapseHeader>
+                <CollapseBody>
+                    <Fields>
+                        <Field>
+                            <FieldLabel>Users</FieldLabel>
+                            <Autocomplete TItem="ApplicationUser"
+                                          TValue="ApplicationUser"
+                                          Data="@_users"
+                                          TextField="@((item) => item.GetNameReference())"
+                                          ValueField="@((item) => item)"
+                                          SelectionMode="AutocompleteSelectionMode.Multiple"
+                                          Filter="AutocompleteFilter.Contains"
+                                          @bind-SelectedValues="_userFilter"
+                                          Immediate="true"
+                                          @ref="userAutocomplete">
+                            </Autocomplete>
+                        </Field>
+                        <Field>
+                            <FieldLabel>Skates</FieldLabel>
+                            <Autocomplete TItem="Skate"
+                                          TValue="Skate"
+                                          Data="@_skates"
+                                          TextField="@((item) => item.Name)"
+                                          ValueField="@((item) => item)"
+                                          SelectionMode="AutocompleteSelectionMode.Multiple"
+                                          Filter="AutocompleteFilter.Contains"
+                                          @bind-SelectedValues="_skateFilter"
+                                          Immediate="true"
+                                          @ref="skateAutocomplete">
+                            </Autocomplete>
+                        </Field>
+                    </Fields>
+                    <Field>
+                        <FieldLabel>Action</FieldLabel>
+                        <TextEdit @bind-Text="@_actionFilter" Immediate="true"/>
+                    </Field>
+            <Button Color="Color.Primary" Clicked="() => {skateAutocomplete.Clear(); userAutocomplete.Clear(); _actionFilter = null;}">Reset Filters</Button>
+                </CollapseBody>
+                </Collapse>
+            </Accordion>
+    <br/>
+        <br/>
         @if(_auditLogs is not null) {
             <Table Striped>
                 <TableHeader>
@@ -28,6 +75,10 @@
                 <TableBody>
                     @foreach (var log in _auditLogs)
                     {
+                        if (!ShouldIncludeLog(log))
+                        {
+                            continue;
+                        }
                         <TableRow>
                             <TableRowHeader>@log.Timestamp</TableRowHeader>
                             <TableRowCell>
@@ -56,10 +107,21 @@
     
 @code {
     private bool _busy, _hasLoaded;
+    private bool FilterVisible;
+
+    private List<AuditLog> _auditLogs;
+
     private List<Skate>? _skates;
     private List<Property>? _properties;
-    private List<ApplicationUser> _users;
-    private List<AuditLog> _auditLogs;
+    private IEnumerable<ApplicationUser> _users;
+
+    private Autocomplete<ApplicationUser, ApplicationUser> userAutocomplete;
+    private Autocomplete<Skate, Skate> skateAutocomplete;
+
+    private string? _actionFilter;
+    private List<Skate>? _skateFilter;
+    private List<ApplicationUser>? _userFilter;
+
     private ApplicationDbContext? Context;
     protected override async Task OnInitializedAsync()
     {
@@ -90,5 +152,16 @@
     public void Dispose()
     {
         Context?.Dispose();
+    }
+
+    private bool ShouldIncludeLog(AuditLog log)
+    {
+        bool matchesActionFilter = _actionFilter.IsNullOrEmpty() || log.Action.Contains(_actionFilter);
+
+        bool matchesSkateFilter = _skateFilter.IsNullOrEmpty() || _skateFilter?.FirstOrDefault(s => log.Skate == s) is not null;
+
+        bool matchesUserFilter = _userFilter.IsNullOrEmpty() || _userFilter?.FirstOrDefault(u => log.User == u) is not null;
+
+        return matchesSkateFilter && matchesUserFilter && matchesActionFilter;
     }
 }

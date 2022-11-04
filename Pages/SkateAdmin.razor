@@ -110,6 +110,7 @@
 @code {
     private bool _busy, _hasLoaded;
     private List<Skate>? _skates;
+    private List<ApplicationUser>? _users;
     private string? _search;
     private List<Property>? _properties;
     private bool _addSkateModalVisible;
@@ -126,9 +127,11 @@
             _skates = await Context.Skates.OrderBy(s=>s.IsArchived).ThenBy(s => s.Name).ToListAsync();
             //Get global properties
             _properties = await Context.Properties.ToListAsync();
+            //Get all users
+            _users = await Context.Users.ToListAsync();
         }
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        user = await UserManager.GetUserAsync(authState.User);
+        user = _users.FirstOrDefault(u => u.UserName == authState.User.Identity.Name);
         await base.OnInitializedAsync();
         _busy = false;
         _hasLoaded = true;
@@ -177,7 +180,7 @@
         AuditLog audit = new AuditLog() {
             Timestamp = DateTime.Now,
             Skate = skate,
-                User = user,
+            User = user,
             Action = $"Added new skate"
         };
         _skates.Add(skate);

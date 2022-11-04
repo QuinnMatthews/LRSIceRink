@@ -205,7 +205,7 @@
         }
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        loggedInUser = await UserManager.GetUserAsync(authState.User);
+        loggedInUser = _users.FirstOrDefault(u => u.UserName == authState.User.Identity.Name);
 
         await base.OnInitializedAsync();
         _busy = false;

@@ -93,10 +93,10 @@
             _skates = await Context.Skates.Where(s=> !s.IsArchived).OrderBy(s=>s.MinutesUsed).ToListAsync();
             //Get global properties
             _properties = await Context.Properties.ToListAsync();
+            //Get logged in user
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            user = await Context.Users.Where(u => u.UserName == authState.User.Identity.Name).FirstAsync();
         }
-
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        user = await UserManager.GetUserAsync(authState.User);
 
         await base.OnInitializedAsync();
         _busy = false;

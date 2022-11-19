@@ -172,6 +172,19 @@
             }
             else
             {
+                SkateUsage? usage = skate.SkateUsages.Find(s => s.TimeIn == null);
+                if (usage is null)
+                {
+                    usage = new SkateUsage
+                    {
+                        TimeOut = DateTime.Now
+                    };
+                    skate.SkateUsages.Add(usage);
+                }
+                else
+                {
+                    usage.TimeOut = DateTime.Now;
+                }
                 audit.Action = "Checked skate out";
             }
         } else if (newStatus == SkateStatus.Available && oldStatus == SkateStatus.InUse)

@@ -23,7 +23,7 @@ namespace LRSIceRink.Services {
             emailContent.Html = htmlMessage;
             List<EmailAddress> emailAddresses = new List<EmailAddress> { new(email)};
             EmailRecipients emailRecipients = new EmailRecipients(emailAddresses);
-            EmailMessage emailMessage = new EmailMessage("operations@lrsicerink.com", emailContent, emailRecipients);
+            EmailMessage emailMessage = new EmailMessage("noreply@qlmlabs.us", emailContent, emailRecipients);
             SendEmailResult emailResult = await emailClient.SendAsync(emailMessage, CancellationToken.None);
         }
     }

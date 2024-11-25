@@ -248,16 +248,11 @@
             Timestamp = DateTime.Now,
             User = loggedInUser,
         };
-        if(role == (await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync()) && !IsInRole(loggedInUser, _roles.First(r => r.Name == "SupremeAdminOfTheUniverse")))
+        if(role == (await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync()) && !IsInRole(loggedInUser, _roles.First(r => r.Name == "GlobalAdmin")))
         {
             audit.Action = $"Tried to add {user.FirstName} {user.LastName} to {role.Name}. Access was denied";
             await MessageService.Error("You can't add new global admins.", "Access Denied");
-        } else if (role == await Context.Roles.Where(r => r.Name == "SupremeAdminOfTheUniverse").FirstAsync())
-        {
-            audit.Action = $"Tried to add {user.FirstName} {user.LastName} to {role.Name}. Access was denied";
-            await MessageService.Error("There can only be one!", "Access Denied");
-        }
-        else
+        } else
         {
             var userRole = new ApplicationUserRole()
             {
@@ -281,15 +276,11 @@
         };
         if(
             role == await Context.Roles.Where(r => r.Name == "GlobalAdmin").FirstAsync() 
-            && !IsInRole(loggedInUser, _roles.First(r => r.Name == "SupremeAdminOfTheUniverse"))
+            && !IsInRole(loggedInUser, _roles.First(r => r.Name == "GlobalAdmin"))
         ){
             audit.Action = $"Tried to remove {user.FirstName} {user.LastName} from {role.Name}. Access was denied";
-            await MessageService.Error("You can't remove global admin, the authorities have been alerted", "Access Denied");
-        } else if( role == await Context.Roles.Where(r => r.Name == "SupremeAdminOfTheUniverse").FirstAsync()){
-                audit.Action = $"Tried to remove {user.FirstName} {user.LastName} from {role.Name}. Access was denied";
-                await MessageService.Error("My power can never be removed Mwahaha", "Access Denied");
-            }
-        else
+            await MessageService.Error("You must be a Global Admin to Remove another Global Admin", "Access Denied");
+        } else
         {
             audit.Action = $"Removed {user.FirstName} {user.LastName} from {role.Name}.";
             var userRole = new ApplicationUserRole()
